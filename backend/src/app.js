@@ -9,6 +9,7 @@ const vacunaRoutes = require('./routes/vacuna.routes');
 const registroVacunacionRoutes = require('./routes/registroVacunacion.routes');
 const pesoRoutes = require('./routes/peso.routes');
 const finanzaRoutes = require('./routes/finanza.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 
 const app = express();
@@ -47,6 +48,7 @@ app.use('/api/vacunas', vacunaRoutes);
 app.use('/api/registros-vacunacion', registroVacunacionRoutes);
 app.use('/api/pesos', pesoRoutes);
 app.use('/api/finanzas', finanzaRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 
 module.exports = app;
