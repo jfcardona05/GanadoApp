@@ -5,6 +5,7 @@ const pool = require('./config/db');
 const authRoutes = require('./routes/auth.routes');
 const fincaRoutes = require('./routes/finca.routes');
 const animalRoutes = require('./routes/animal.routes');
+const vacunaRoutes = require('./routes/vacuna.routes');
 
 const app = express();
 
@@ -38,5 +39,6 @@ app.get('/api/test-db', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/fincas', fincaRoutes);
 app.use('/api/animales', animalRoutes);
+app.use('/api/vacunas', vacunaRoutes);
 
 module.exports = app;
