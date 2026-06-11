@@ -106,7 +106,15 @@ const iniciarSesion = async (req, res) => {
   }
 };
 
+const perfilUsuario = async (req, res) => {
+  res.json({
+    message: 'Ruta protegida funcionando correctamente',
+    usuario: req.usuario
+  });
+};
+
 module.exports = {
   registrarUsuario,
-  iniciarSesion
+  iniciarSesion,
+  perfilUsuario
 };
