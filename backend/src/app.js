@@ -8,6 +8,7 @@ const animalRoutes = require('./routes/animal.routes');
 const vacunaRoutes = require('./routes/vacuna.routes');
 const registroVacunacionRoutes = require('./routes/registroVacunacion.routes');
 const pesoRoutes = require('./routes/peso.routes');
+const finanzaRoutes = require('./routes/finanza.routes');
 
 
 const app = express();
@@ -45,5 +46,7 @@ app.use('/api/animales', animalRoutes);
 app.use('/api/vacunas', vacunaRoutes);
 app.use('/api/registros-vacunacion', registroVacunacionRoutes);
 app.use('/api/pesos', pesoRoutes);
+app.use('/api/finanzas', finanzaRoutes);
+
 
 module.exports = app;
