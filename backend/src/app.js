@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const pool = require('./config/db');
 
+const authRoutes = require('./routes/auth.routes');
+
 const app = express();
 
 app.use(cors());
@@ -30,5 +32,7 @@ app.get('/api/test-db', async (req, res) => {
     });
   }
 });
+
+app.use('/api/auth', authRoutes);
 
 module.exports = app;
