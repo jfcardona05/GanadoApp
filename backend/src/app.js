@@ -6,6 +6,7 @@ const authRoutes = require('./routes/auth.routes');
 const fincaRoutes = require('./routes/finca.routes');
 const animalRoutes = require('./routes/animal.routes');
 const vacunaRoutes = require('./routes/vacuna.routes');
+const registroVacunacionRoutes = require('./routes/registroVacunacion.routes');
 
 const app = express();
 
@@ -40,5 +41,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/fincas', fincaRoutes);
 app.use('/api/animales', animalRoutes);
 app.use('/api/vacunas', vacunaRoutes);
+app.use('/api/registros-vacunacion', registroVacunacionRoutes);
 
 module.exports = app;
