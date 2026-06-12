@@ -1,32 +1,68 @@
 const pool = require('../config/db');
 
+const validarFincaDelUsuario = async (id_finca, id_usuario) => {
+  const [fincas] = await pool.query(
+    'SELECT * FROM fincas WHERE id_finca = ? AND id_usuario = ?',
+    [id_finca, id_usuario]
+  );
+
+  return fincas.length > 0;
+};
+
+const obtenerCategoriaDelUsuario = async (id_categoria, id_usuario, tipo) => {
+  const [categorias] = await pool.query(
+    `SELECT *
+     FROM categorias_financieras
+     WHERE id_categoria = ? AND id_usuario = ? AND tipo = ?`,
+    [id_categoria, id_usuario, tipo]
+  );
+
+  return categorias[0];
+};
+
 const crearGasto = async (req, res) => {
   try {
-    const { id_finca, categoria, descripcion, monto, fecha } = req.body;
+    const { id_finca, id_categoria, descripcion, monto, fecha } = req.body;
     const id_usuario = req.usuario.id_usuario;
 
-    if (!id_finca || !categoria || !monto || !fecha) {
+    if (!id_finca || !id_categoria || !monto || !fecha) {
       return res.status(400).json({
         message: 'Finca, categoría, monto y fecha son obligatorios'
       });
     }
 
-    const [fincas] = await pool.query(
-      'SELECT * FROM fincas WHERE id_finca = ? AND id_usuario = ?',
-      [id_finca, id_usuario]
-    );
+    const fincaValida = await validarFincaDelUsuario(id_finca, id_usuario);
 
-    if (fincas.length === 0) {
+    if (!fincaValida) {
       return res.status(404).json({
         message: 'La finca no existe o no pertenece al usuario'
       });
     }
 
+    const categoria = await obtenerCategoriaDelUsuario(
+      id_categoria,
+      id_usuario,
+      'GASTO'
+    );
+
+    if (!categoria) {
+      return res.status(404).json({
+        message: 'La categoría de gasto no existe o no pertenece al usuario'
+      });
+    }
+
     await pool.query(
       `INSERT INTO gastos 
-      (id_finca, categoria, descripcion, monto, fecha)
-      VALUES (?, ?, ?, ?, ?)`,
-      [id_finca, categoria, descripcion || null, monto, fecha]
+      (id_finca, id_categoria, categoria, descripcion, monto, fecha)
+      VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        id_finca,
+        id_categoria,
+        categoria.nombre,
+        descripcion || null,
+        monto,
+        fecha
+      ]
     );
 
     res.status(201).json({
@@ -50,9 +86,12 @@ const obtenerGastos = async (req, res) => {
     const [gastos] = await pool.query(
       `SELECT 
         g.*,
+        cf.nombre AS nombre_categoria,
+        cf.tipo AS tipo_categoria,
         f.nombre AS nombre_finca
       FROM gastos g
       INNER JOIN fincas f ON g.id_finca = f.id_finca
+      LEFT JOIN categorias_financieras cf ON g.id_categoria = cf.id_categoria
       WHERE f.id_usuario = ?
       ORDER BY g.fecha DESC`,
       [id_usuario]
@@ -110,31 +149,47 @@ const eliminarGasto = async (req, res) => {
 
 const crearIngreso = async (req, res) => {
   try {
-    const { id_finca, categoria, descripcion, monto, fecha } = req.body;
+    const { id_finca, id_categoria, descripcion, monto, fecha } = req.body;
     const id_usuario = req.usuario.id_usuario;
 
-    if (!id_finca || !categoria || !monto || !fecha) {
+    if (!id_finca || !id_categoria || !monto || !fecha) {
       return res.status(400).json({
         message: 'Finca, categoría, monto y fecha son obligatorios'
       });
     }
 
-    const [fincas] = await pool.query(
-      'SELECT * FROM fincas WHERE id_finca = ? AND id_usuario = ?',
-      [id_finca, id_usuario]
-    );
+    const fincaValida = await validarFincaDelUsuario(id_finca, id_usuario);
 
-    if (fincas.length === 0) {
+    if (!fincaValida) {
       return res.status(404).json({
         message: 'La finca no existe o no pertenece al usuario'
       });
     }
 
+    const categoria = await obtenerCategoriaDelUsuario(
+      id_categoria,
+      id_usuario,
+      'INGRESO'
+    );
+
+    if (!categoria) {
+      return res.status(404).json({
+        message: 'La categoría de ingreso no existe o no pertenece al usuario'
+      });
+    }
+
     await pool.query(
       `INSERT INTO ingresos 
-      (id_finca, categoria, descripcion, monto, fecha)
-      VALUES (?, ?, ?, ?, ?)`,
-      [id_finca, categoria, descripcion || null, monto, fecha]
+      (id_finca, id_categoria, categoria, descripcion, monto, fecha)
+      VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        id_finca,
+        id_categoria,
+        categoria.nombre,
+        descripcion || null,
+        monto,
+        fecha
+      ]
     );
 
     res.status(201).json({
@@ -158,9 +213,12 @@ const obtenerIngresos = async (req, res) => {
     const [ingresos] = await pool.query(
       `SELECT 
         i.*,
+        cf.nombre AS nombre_categoria,
+        cf.tipo AS tipo_categoria,
         f.nombre AS nombre_finca
       FROM ingresos i
       INNER JOIN fincas f ON i.id_finca = f.id_finca
+      LEFT JOIN categorias_financieras cf ON i.id_categoria = cf.id_categoria
       WHERE f.id_usuario = ?
       ORDER BY i.fecha DESC`,
       [id_usuario]
