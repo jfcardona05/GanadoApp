@@ -3,7 +3,9 @@ import api from './api'
 export interface Gasto {
   id_gasto: number
   id_finca: number
-  categoria: string
+  id_categoria: number | null
+  categoria?: string | null
+  nombre_categoria?: string | null
   descripcion: string | null
   monto: string | number
   fecha: string
@@ -13,7 +15,9 @@ export interface Gasto {
 export interface Ingreso {
   id_ingreso: number
   id_finca: number
-  categoria: string
+  id_categoria: number | null
+  categoria?: string | null
+  nombre_categoria?: string | null
   descripcion: string | null
   monto: string | number
   fecha: string
@@ -22,7 +26,7 @@ export interface Ingreso {
 
 interface MovimientoData {
   id_finca: number
-  categoria: string
+  id_categoria: number
   descripcion?: string | null
   monto: number
   fecha: string
