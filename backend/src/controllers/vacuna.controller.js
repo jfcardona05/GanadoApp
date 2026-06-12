@@ -3,6 +3,7 @@ const pool = require('../config/db');
 const crearVacuna = async (req, res) => {
   try {
     const { nombre, descripcion, frecuencia_dias, obligatoria } = req.body;
+    const id_usuario = req.usuario.id_usuario;
 
     if (!nombre) {
       return res.status(400).json({
@@ -11,19 +12,22 @@ const crearVacuna = async (req, res) => {
     }
 
     const [vacunaExistente] = await pool.query(
-      'SELECT * FROM vacunas WHERE nombre = ?',
-      [nombre]
+      'SELECT * FROM vacunas WHERE nombre = ? AND id_usuario = ?',
+      [nombre, id_usuario]
     );
 
     if (vacunaExistente.length > 0) {
       return res.status(400).json({
-        message: 'Ya existe una vacuna con ese nombre'
+        message: 'Ya existe una vacuna con ese nombre para este usuario'
       });
     }
 
     await pool.query(
-      'INSERT INTO vacunas (nombre, descripcion, frecuencia_dias, obligatoria) VALUES (?, ?, ?, ?)',
+      `INSERT INTO vacunas 
+      (id_usuario, nombre, descripcion, frecuencia_dias, obligatoria) 
+      VALUES (?, ?, ?, ?, ?)`,
       [
+        id_usuario,
         nombre,
         descripcion || null,
         frecuencia_dias || null,
@@ -47,8 +51,11 @@ const crearVacuna = async (req, res) => {
 
 const obtenerVacunas = async (req, res) => {
   try {
+    const id_usuario = req.usuario.id_usuario;
+
     const [vacunas] = await pool.query(
-      'SELECT * FROM vacunas ORDER BY nombre ASC'
+      'SELECT * FROM vacunas WHERE id_usuario = ? ORDER BY nombre ASC',
+      [id_usuario]
     );
 
     res.json(vacunas);
@@ -66,10 +73,11 @@ const obtenerVacunas = async (req, res) => {
 const obtenerVacunaPorId = async (req, res) => {
   try {
     const { id } = req.params;
+    const id_usuario = req.usuario.id_usuario;
 
     const [vacunas] = await pool.query(
-      'SELECT * FROM vacunas WHERE id_vacuna = ?',
-      [id]
+      'SELECT * FROM vacunas WHERE id_vacuna = ? AND id_usuario = ?',
+      [id, id_usuario]
     );
 
     if (vacunas.length === 0) {
@@ -94,6 +102,7 @@ const actualizarVacuna = async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre, descripcion, frecuencia_dias, obligatoria } = req.body;
+    const id_usuario = req.usuario.id_usuario;
 
     if (!nombre) {
       return res.status(400).json({
@@ -104,19 +113,20 @@ const actualizarVacuna = async (req, res) => {
     const [resultado] = await pool.query(
       `UPDATE vacunas 
        SET nombre = ?, descripcion = ?, frecuencia_dias = ?, obligatoria = ?
-       WHERE id_vacuna = ?`,
+       WHERE id_vacuna = ? AND id_usuario = ?`,
       [
         nombre,
         descripcion || null,
         frecuencia_dias || null,
         obligatoria || false,
-        id
+        id,
+        id_usuario
       ]
     );
 
     if (resultado.affectedRows === 0) {
       return res.status(404).json({
-        message: 'Vacuna no encontrada'
+        message: 'Vacuna no encontrada o no pertenece al usuario'
       });
     }
 
@@ -137,15 +147,16 @@ const actualizarVacuna = async (req, res) => {
 const eliminarVacuna = async (req, res) => {
   try {
     const { id } = req.params;
+    const id_usuario = req.usuario.id_usuario;
 
     const [resultado] = await pool.query(
-      'DELETE FROM vacunas WHERE id_vacuna = ?',
-      [id]
+      'DELETE FROM vacunas WHERE id_vacuna = ? AND id_usuario = ?',
+      [id, id_usuario]
     );
 
     if (resultado.affectedRows === 0) {
       return res.status(404).json({
-        message: 'Vacuna no encontrada'
+        message: 'Vacuna no encontrada o no pertenece al usuario'
       });
     }
 

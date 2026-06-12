@@ -34,8 +34,8 @@ const registrarVacunacion = async (req, res) => {
     }
 
     const [vacunas] = await pool.query(
-      'SELECT * FROM vacunas WHERE id_vacuna = ?',
-      [id_vacuna]
+      'SELECT * FROM vacunas WHERE id_vacuna = ? AND id_usuario = ?',
+      [id_vacuna, id_usuario]
     );
 
     if (vacunas.length === 0) {
