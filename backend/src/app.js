@@ -11,7 +11,6 @@ const pesoRoutes = require('./routes/peso.routes');
 const finanzaRoutes = require('./routes/finanza.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const categoriaFinancieraRoutes = require('./routes/categoriaFinanciera.routes');
-const importRoutes = require('./routes/import.routes');
 
 
 const app = express();
@@ -52,7 +51,6 @@ app.use('/api/pesos', pesoRoutes);
 app.use('/api/finanzas', finanzaRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/categorias-financieras', categoriaFinancieraRoutes);
-app.use('/api/import', importRoutes);
 
 
 module.exports = app;
