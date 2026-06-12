@@ -1,12 +1,22 @@
 const pool = require('../config/db');
 
+const calcularProximaFecha = (fechaAplicacion, frecuenciaDias) => {
+  if (!frecuenciaDias) {
+    return null;
+  }
+
+  const fecha = new Date(fechaAplicacion);
+  fecha.setDate(fecha.getDate() + Number(frecuenciaDias));
+
+  return fecha.toISOString().slice(0, 10);
+};
+
 const registrarVacunacion = async (req, res) => {
   try {
     const {
       id_animal,
       id_vacuna,
       fecha_aplicacion,
-      proxima_fecha,
       veterinario,
       observaciones
     } = req.body;
@@ -40,9 +50,16 @@ const registrarVacunacion = async (req, res) => {
 
     if (vacunas.length === 0) {
       return res.status(404).json({
-        message: 'La vacuna no existe'
+        message: 'La vacuna no existe o no pertenece al usuario'
       });
     }
+
+    const vacuna = vacunas[0];
+
+    const proxima_fecha = calcularProximaFecha(
+      fecha_aplicacion,
+      vacuna.frecuencia_dias
+    );
 
     await pool.query(
       `INSERT INTO registros_vacunacion
@@ -52,14 +69,15 @@ const registrarVacunacion = async (req, res) => {
         id_animal,
         id_vacuna,
         fecha_aplicacion,
-        proxima_fecha || null,
+        proxima_fecha,
         veterinario || null,
         observaciones || null
       ]
     );
 
     res.status(201).json({
-      message: 'Vacunación registrada correctamente'
+      message: 'Vacunación registrada correctamente',
+      proxima_fecha
     });
 
   } catch (error) {
@@ -84,6 +102,7 @@ const obtenerRegistrosVacunacion = async (req, res) => {
         a.nombre AS nombre_animal,
         rv.id_vacuna,
         v.nombre AS nombre_vacuna,
+        v.frecuencia_dias,
         rv.fecha_aplicacion,
         rv.proxima_fecha,
         rv.veterinario,
@@ -123,6 +142,7 @@ const obtenerRegistrosPorAnimal = async (req, res) => {
         a.nombre AS nombre_animal,
         rv.id_vacuna,
         v.nombre AS nombre_vacuna,
+        v.frecuencia_dias,
         rv.fecha_aplicacion,
         rv.proxima_fecha,
         rv.veterinario,

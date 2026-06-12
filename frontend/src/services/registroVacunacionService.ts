@@ -18,7 +18,6 @@ interface RegistroVacunacionData {
   id_animal: number
   id_vacuna: number
   fecha_aplicacion: string
-  proxima_fecha?: string | null
   veterinario?: string | null
   observaciones?: string | null
 }
