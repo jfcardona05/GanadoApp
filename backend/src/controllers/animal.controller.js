@@ -1,7 +1,11 @@
 const pool = require('../config/db');
 
 const crearAnimal = async (req, res) => {
+  const connection = await pool.getConnection();
+
   try {
+    await connection.beginTransaction();
+
     const {
       id_finca,
       codigo,
@@ -17,34 +21,45 @@ const crearAnimal = async (req, res) => {
     const id_usuario = req.usuario.id_usuario;
 
     if (!id_finca || !codigo || !sexo) {
+      await connection.rollback();
+
       return res.status(400).json({
         message: 'La finca, el código y el sexo del animal son obligatorios'
       });
     }
 
-    const [fincas] = await pool.query(
+    const [fincas] = await connection.query(
       'SELECT * FROM fincas WHERE id_finca = ? AND id_usuario = ?',
       [id_finca, id_usuario]
     );
 
     if (fincas.length === 0) {
+      await connection.rollback();
+
       return res.status(404).json({
         message: 'La finca no existe o no pertenece al usuario'
       });
     }
 
-    const [animalExistente] = await pool.query(
+    const [animalExistente] = await connection.query(
       'SELECT * FROM animales WHERE id_finca = ? AND codigo = ?',
       [id_finca, codigo]
     );
 
     if (animalExistente.length > 0) {
+      await connection.rollback();
+
       return res.status(400).json({
         message: 'Ya existe un animal con ese código en esta finca'
       });
     }
 
-    await pool.query(
+    const pesoInicial =
+      peso_actual !== undefined && peso_actual !== null && peso_actual !== ''
+        ? Number(peso_actual)
+        : null;
+
+    const [resultado] = await connection.query(
       `INSERT INTO animales 
       (id_finca, codigo, nombre, foto, raza, sexo, fecha_nacimiento, peso_actual, estado_salud) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -56,22 +71,44 @@ const crearAnimal = async (req, res) => {
         raza || null,
         sexo,
         fecha_nacimiento || null,
-        peso_actual || null,
+        pesoInicial,
         estado_salud || 'SANO'
       ]
     );
 
+    const id_animal_creado = resultado.insertId;
+
+    if (pesoInicial !== null) {
+      await connection.query(
+        `INSERT INTO registros_peso
+        (id_animal, peso, fecha_registro, observaciones)
+        VALUES (?, ?, CURDATE(), ?)`,
+        [
+          id_animal_creado,
+          pesoInicial,
+          'Registro inicial al crear el animal'
+        ]
+      );
+    }
+
+    await connection.commit();
+
     res.status(201).json({
-      message: 'Animal registrado correctamente'
+      message: 'Animal registrado correctamente',
+      id_animal: id_animal_creado
     });
 
   } catch (error) {
+    await connection.rollback();
+
     console.error('Error al crear animal:', error);
 
     res.status(500).json({
       message: 'Error al crear animal',
       error: error.message
     });
+  } finally {
+    connection.release();
   }
 };
 
