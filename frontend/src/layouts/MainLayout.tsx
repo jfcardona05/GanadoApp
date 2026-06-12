@@ -1,4 +1,37 @@
-import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+
+const menuItems = [
+  {
+    label: 'Dashboard',
+    path: '/dashboard',
+    icon: '📊',
+  },
+  {
+    label: 'Fincas',
+    path: '/fincas',
+    icon: '🌿',
+  },
+  {
+    label: 'Animales',
+    path: '/animales',
+    icon: '🐂',
+  },
+  {
+    label: 'Vacunas',
+    path: '/vacunas',
+    icon: '💉',
+  },
+  {
+    label: 'Control de peso',
+    path: '/pesos',
+    icon: '⚖️',
+  },
+  {
+    label: 'Finanzas',
+    path: '/finanzas',
+    icon: '💰',
+  },
+]
 
 function MainLayout() {
   const navigate = useNavigate()
@@ -13,53 +46,83 @@ function MainLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <aside className="fixed left-0 top-0 h-full w-64 bg-green-800 text-white p-6 flex flex-col">
-        <div>
-          <h1 className="text-2xl font-bold mb-2">GanadoApp</h1>
+    <div className="min-h-screen bg-slate-100">
+      <aside className="fixed left-0 top-0 z-40 h-screen w-72 bg-slate-950 text-white shadow-2xl">
+        <div className="flex h-full flex-col">
+          <div className="border-b border-white/10 px-6 py-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 border border-green-500/60 text-xl shadow-lg">
+                🚜
+              </div>
 
-          {usuario && (
-            <p className="text-sm text-green-100 mb-8">
-              {usuario.nombre}
+              <div>
+                <h1 className="text-xl font-bold leading-tight">
+                  GanadoApp
+                </h1>
+                <p className="text-xs text-slate-400">
+                  Gestión ganadera
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-4 py-5">
+            <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Menú principal
             </p>
-          )}
 
-          <nav className="flex flex-col gap-4">
-            <Link to="/dashboard" className="hover:text-green-200">
-              Dashboard
-            </Link>
+            <nav className="space-y-2">
+              {menuItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                      isActive
+                        ? 'bg-green-600 text-white shadow-lg shadow-green-900/30'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    }`
+                  }
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-lg">
+                    {item.icon}
+                  </span>
 
-            <Link to="/fincas" className="hover:text-green-200">
-              Fincas
-            </Link>
+                  <span>
+                    {item.label}
+                  </span>
+                </NavLink>
+              ))}
+            </nav>
+          </div>
 
-            <Link to="/animales" className="hover:text-green-200">
-              Animales
-            </Link>
+          <div className="mt-auto border-t border-white/10 p-4">
+            <div className="mb-4 rounded-2xl bg-white/10 p-4">
+              <p className="text-xs text-slate-400">
+                Usuario activo
+              </p>
 
-            <Link to="/vacunas" className="hover:text-green-200">
-              Vacunas
-            </Link>
+              <p className="mt-1 font-semibold text-white">
+                {usuario?.nombre || 'Ganadero'}
+              </p>
 
-            <Link to="/pesos" className="hover:text-green-200">
-              Control de Peso
-            </Link>
+              <p className="mt-1 truncate text-xs text-slate-400">
+                {usuario?.correo || 'Sin correo'}
+              </p>
+            </div>
 
-            <Link to="/finanzas" className="hover:text-green-200">
-              Finanzas
-            </Link>
-          </nav>
+            <button
+              onClick={cerrarSesion}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
+            >
+              <span>↪</span>
+              Cerrar sesión
+            </button>
+          </div>
         </div>
-
-        <button
-          onClick={cerrarSesion}
-          className="mt-auto bg-green-700 hover:bg-green-600 text-white py-2 px-4 rounded-lg"
-        >
-          Cerrar sesión
-        </button>
       </aside>
 
-      <main className="ml-64 p-8">
+      <main className="ml-72 min-h-screen p-8">
         <Outlet />
       </main>
     </div>

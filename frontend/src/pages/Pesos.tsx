@@ -7,6 +7,13 @@ import type { Animal } from '../services/animalService'
 import { createPeso, deletePeso, getPesos } from '../services/pesoService'
 import type { RegistroPeso } from '../services/pesoService'
 
+import Modal from '../components/Modal'
+import Button from '../components/Button'
+import PageHeader from '../components/PageHeader'
+import EmptyState from '../components/EmptyState'
+import Alert from '../components/Alert'
+import Badge from '../components/Badge'
+
 function Pesos() {
   const [animales, setAnimales] = useState<Animal[]>([])
   const [pesos, setPesos] = useState<RegistroPeso[]>([])
@@ -16,11 +23,16 @@ function Pesos() {
   const [fechaRegistro, setFechaRegistro] = useState('')
   const [observaciones, setObservaciones] = useState('')
 
+  const [modalAbierto, setModalAbierto] = useState(false)
+
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
 
   const cargarDatos = async () => {
     try {
+      setLoading(true)
+
       const [animalesData, pesosData] = await Promise.all([
         getAnimales(),
         getPesos(),
@@ -29,13 +41,34 @@ function Pesos() {
       setAnimales(animalesData)
       setPesos(pesosData)
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Error al cargar datos')
+      setError(error.response?.data?.message || 'Error al cargar control de peso')
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => {
     cargarDatos()
   }, [])
+
+  const limpiarFormulario = () => {
+    setIdAnimal('')
+    setPeso('')
+    setFechaRegistro('')
+    setObservaciones('')
+  }
+
+  const abrirModal = () => {
+    limpiarFormulario()
+    setError('')
+    setMensaje('')
+    setModalAbierto(true)
+  }
+
+  const cerrarModal = () => {
+    setModalAbierto(false)
+    limpiarFormulario()
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -44,6 +77,11 @@ function Pesos() {
 
     if (!idAnimal || !peso || !fechaRegistro) {
       setError('Animal, peso y fecha son obligatorios')
+      return
+    }
+
+    if (Number(peso) <= 0) {
+      setError('El peso debe ser mayor a cero')
       return
     }
 
@@ -56,10 +94,7 @@ function Pesos() {
       })
 
       setMensaje('Peso registrado correctamente')
-      setIdAnimal('')
-      setPeso('')
-      setFechaRegistro('')
-      setObservaciones('')
+      cerrarModal()
       cargarDatos()
     } catch (error: any) {
       setError(error.response?.data?.message || 'Error al registrar peso')
@@ -67,78 +102,142 @@ function Pesos() {
   }
 
   const handleEliminar = async (id: number) => {
-    if (!window.confirm('¿Eliminar este registro de peso?')) return
+    const confirmar = window.confirm('¿Seguro que deseas eliminar este registro de peso?')
+
+    if (!confirmar) return
 
     try {
       await deletePeso(id)
-      setMensaje('Registro eliminado correctamente')
+      setMensaje('Registro de peso eliminado correctamente')
       cargarDatos()
     } catch (error: any) {
       setError(error.response?.data?.message || 'Error al eliminar registro')
     }
   }
 
+  const obtenerAnimalSeleccionado = () => {
+    return animales.find((animal) => animal.id_animal === Number(idAnimal))
+  }
+
+  const totalRegistros = pesos.length
+
+  const ultimoPeso = pesos.length > 0
+    ? pesos[0]
+    : null
+
+  const pesoPromedio = pesos.length > 0
+    ? pesos.reduce((total, registro) => total + Number(registro.peso), 0) / pesos.length
+    : 0
+
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-2">Control de peso</h1>
-      <p className="text-gray-500 mb-6">Registra y consulta el historial de peso del ganado.</p>
-
-      {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">{error}</div>}
-      {mensaje && <div className="bg-green-100 text-green-700 p-4 rounded-lg mb-4">{mensaje}</div>}
-
-      <section className="bg-white rounded-xl shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Registrar peso</h2>
-
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <select className="border rounded-lg px-4 py-2" value={idAnimal} onChange={(e) => setIdAnimal(e.target.value)}>
-            <option value="">Seleccionar animal</option>
-            {animales.map((animal) => (
-              <option key={animal.id_animal} value={animal.id_animal}>
-                {animal.codigo} - {animal.nombre || 'Sin nombre'}
-              </option>
-            ))}
-          </select>
-
-          <input type="number" step="0.01" className="border rounded-lg px-4 py-2" placeholder="Peso kg" value={peso} onChange={(e) => setPeso(e.target.value)} />
-          <input type="date" className="border rounded-lg px-4 py-2" value={fechaRegistro} onChange={(e) => setFechaRegistro(e.target.value)} />
-          <input className="border rounded-lg px-4 py-2" placeholder="Observaciones" value={observaciones} onChange={(e) => setObservaciones(e.target.value)} />
-
-          <button className="bg-green-700 text-white px-4 py-2 rounded-lg md:col-span-4">
+      <PageHeader
+        title="Control de peso"
+        description="Registra y consulta el historial de peso del ganado."
+        action={
+          <Button onClick={abrirModal}>
             Registrar peso
-          </button>
-        </form>
-      </section>
+          </Button>
+        }
+      />
+
+      {error && (
+        <Alert type="error" message={error} />
+      )}
+
+      {mensaje && (
+        <Alert type="success" message={mensaje} />
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-sm text-gray-500">Registros de peso</p>
+          <h2 className="text-3xl font-bold text-green-700">
+            {totalRegistros}
+          </h2>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-sm text-gray-500">Peso promedio</p>
+          <h2 className="text-3xl font-bold text-green-700">
+            {pesoPromedio ? `${pesoPromedio.toFixed(1)} kg` : 'N/A'}
+          </h2>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-sm text-gray-500">Último registro</p>
+          <h2 className="text-2xl font-bold text-green-700">
+            {ultimoPeso ? `${ultimoPeso.peso} kg` : 'N/A'}
+          </h2>
+        </div>
+      </div>
 
       <section className="bg-white rounded-xl shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">Historial de peso</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800">
+            Historial de peso
+          </h2>
 
-        {pesos.length === 0 ? (
-          <p className="text-gray-500">No hay registros de peso.</p>
+          <span className="text-sm text-gray-500">
+            Total: {pesos.length}
+          </span>
+        </div>
+
+        {loading ? (
+          <p className="text-gray-500">Cargando registros de peso...</p>
+        ) : pesos.length === 0 ? (
+          <EmptyState
+            title="No hay registros de peso"
+            description="Cuando registres un animal con peso inicial, se generará automáticamente el primer control de peso."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b text-gray-600">
-                  <th className="py-2">Animal</th>
+                  <th className="py-3">Animal</th>
                   <th>Peso</th>
                   <th>Fecha</th>
                   <th>Finca</th>
                   <th>Observaciones</th>
-                  <th>Acciones</th>
+                  <th className="text-right">Acciones</th>
                 </tr>
               </thead>
+
               <tbody>
                 {pesos.map((registro) => (
-                  <tr key={registro.id_peso} className="border-b">
-                    <td className="py-3">{registro.nombre_animal || registro.codigo_animal}</td>
-                    <td>{registro.peso} kg</td>
-                    <td>{registro.fecha_registro?.slice(0, 10)}</td>
-                    <td>{registro.nombre_finca || 'N/A'}</td>
-                    <td>{registro.observaciones || 'N/A'}</td>
+                  <tr key={registro.id_peso} className="border-b hover:bg-gray-50">
+                    <td className="py-4 font-medium text-gray-800">
+                      {registro.nombre_animal || registro.codigo_animal}
+                    </td>
+
                     <td>
-                      <button onClick={() => handleEliminar(registro.id_peso)} className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm">
-                        Eliminar
-                      </button>
+                      <Badge variant="green">
+                        {registro.peso} kg
+                      </Badge>
+                    </td>
+
+                    <td className="text-gray-600">
+                      {registro.fecha_registro?.slice(0, 10)}
+                    </td>
+
+                    <td className="text-gray-600">
+                      {registro.nombre_finca || 'N/A'}
+                    </td>
+
+                    <td className="text-gray-600">
+                      {registro.observaciones || 'N/A'}
+                    </td>
+
+                    <td className="py-4">
+                      <div className="flex justify-end">
+                        <Button
+                          variant="danger"
+                          onClick={() => handleEliminar(registro.id_peso)}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -147,6 +246,98 @@ function Pesos() {
           </div>
         )}
       </section>
+
+      <Modal
+        isOpen={modalAbierto}
+        onClose={cerrarModal}
+        title="Registrar peso"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Animal
+            </label>
+
+            <select
+              value={idAnimal}
+              onChange={(e) => setIdAnimal(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="">Seleccionar animal</option>
+              {animales.map((animal) => (
+                <option key={animal.id_animal} value={animal.id_animal}>
+                  {animal.codigo} - {animal.nombre || 'Sin nombre'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {idAnimal && obtenerAnimalSeleccionado() && (
+            <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-800">
+              Peso actual registrado del animal:{' '}
+              <strong>
+                {obtenerAnimalSeleccionado()?.peso_actual || 'N/A'} kg
+              </strong>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Nuevo peso kg
+            </label>
+
+            <input
+              type="number"
+              step="0.01"
+              value={peso}
+              onChange={(e) => setPeso(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              placeholder="480.5"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Fecha de registro
+            </label>
+
+            <input
+              type="date"
+              value={fechaRegistro}
+              onChange={(e) => setFechaRegistro(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Observaciones
+            </label>
+
+            <textarea
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              placeholder="Peso registrado después de control mensual"
+              rows={3}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={cerrarModal}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">
+              Guardar peso
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

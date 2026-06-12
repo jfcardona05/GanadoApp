@@ -7,6 +7,7 @@ export interface RegistroVacunacion {
   nombre_animal: string | null
   id_vacuna: number
   nombre_vacuna: string
+  frecuencia_dias: number | null
   fecha_aplicacion: string
   proxima_fecha: string | null
   veterinario: string | null

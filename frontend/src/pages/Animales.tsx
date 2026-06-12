@@ -13,6 +13,13 @@ import {
 
 import type { Animal } from '../services/animalService'
 
+import Modal from '../components/Modal'
+import Button from '../components/Button'
+import PageHeader from '../components/PageHeader'
+import EmptyState from '../components/EmptyState'
+import Alert from '../components/Alert'
+import Badge from '../components/Badge'
+
 function Animales() {
   const [animales, setAnimales] = useState<Animal[]>([])
   const [fincas, setFincas] = useState<Finca[]>([])
@@ -27,6 +34,8 @@ function Animales() {
   const [estadoSalud, setEstadoSalud] = useState('SANO')
 
   const [editandoId, setEditandoId] = useState<number | null>(null)
+  const [modalAbierto, setModalAbierto] = useState(false)
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
@@ -34,6 +43,7 @@ function Animales() {
   const cargarDatos = async () => {
     try {
       setLoading(true)
+
       const [animalesData, fincasData] = await Promise.all([
         getAnimales(),
         getFincas(),
@@ -42,7 +52,7 @@ function Animales() {
       setAnimales(animalesData)
       setFincas(fincasData)
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Error al cargar datos')
+      setError(error.response?.data?.message || 'Error al cargar animales')
     } finally {
       setLoading(false)
     }
@@ -64,6 +74,23 @@ function Animales() {
     setEditandoId(null)
   }
 
+  const abrirModalCrear = () => {
+    limpiarFormulario()
+    setError('')
+    setMensaje('')
+    setModalAbierto(true)
+  }
+
+  const cerrarModal = () => {
+    setModalAbierto(false)
+    limpiarFormulario()
+  }
+
+  const formatDateInput = (date: string | null) => {
+    if (!date) return ''
+    return date.slice(0, 10)
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
@@ -76,6 +103,11 @@ function Animales() {
 
     if (!codigo.trim()) {
       setError('El código del animal es obligatorio')
+      return
+    }
+
+    if (!sexo) {
+      setError('El sexo del animal es obligatorio')
       return
     }
 
@@ -100,16 +132,11 @@ function Animales() {
         setMensaje('Animal registrado correctamente')
       }
 
-      limpiarFormulario()
+      cerrarModal()
       cargarDatos()
     } catch (error: any) {
       setError(error.response?.data?.message || 'Error al guardar animal')
     }
-  }
-
-  const formatDateInput = (date: string | null) => {
-    if (!date) return ''
-    return date.slice(0, 10)
   }
 
   const handleEditar = (animal: Animal) => {
@@ -124,10 +151,12 @@ function Animales() {
     setEstadoSalud(animal.estado_salud)
     setError('')
     setMensaje('')
+    setModalAbierto(true)
   }
 
   const handleEliminar = async (id: number) => {
     const confirmar = window.confirm('¿Seguro que deseas eliminar este animal?')
+
     if (!confirmar) return
 
     try {
@@ -139,103 +168,151 @@ function Animales() {
     }
   }
 
+  const getEstadoBadge = (estado: string) => {
+    if (estado === 'SANO') return 'green'
+    if (estado === 'ENFERMO') return 'red'
+    if (estado === 'EN_TRATAMIENTO') return 'yellow'
+    if (estado === 'VENDIDO') return 'blue'
+    return 'gray'
+  }
+
+  const totalSanos = animales.filter((animal) => animal.estado_salud === 'SANO').length
+  const totalEnfermos = animales.filter((animal) => animal.estado_salud === 'ENFERMO').length
+  const totalTratamiento = animales.filter((animal) => animal.estado_salud === 'EN_TRATAMIENTO').length
+
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-2">Animales</h1>
-      <p className="text-gray-500 mb-6">Gestiona el inventario de ganado.</p>
+      <PageHeader
+        title="Animales"
+        description="Gestiona el inventario de ganado registrado en tus fincas."
+        action={
+          <Button onClick={abrirModalCrear}>
+            Registrar animal
+          </Button>
+        }
+      />
 
-      {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">{error}</div>}
-      {mensaje && <div className="bg-green-100 text-green-700 p-4 rounded-lg mb-4">{mensaje}</div>}
+      {error && (
+        <Alert type="error" message={error} />
+      )}
 
-      <section className="bg-white rounded-xl shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">
-          {editandoId ? 'Editar animal' : 'Registrar animal'}
-        </h2>
+      {mensaje && (
+        <Alert type="success" message={mensaje} />
+      )}
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <select
-            value={idFinca}
-            onChange={(e) => setIdFinca(e.target.value)}
-            disabled={!!editandoId}
-            className="border rounded-lg px-4 py-2"
-          >
-            <option value="">Seleccionar finca</option>
-            {fincas.map((finca) => (
-              <option key={finca.id_finca} value={finca.id_finca}>
-                {finca.nombre}
-              </option>
-            ))}
-          </select>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-sm text-gray-500">Total animales</p>
+          <h2 className="text-3xl font-bold text-green-700">
+            {animales.length}
+          </h2>
+        </div>
 
-          <input className="border rounded-lg px-4 py-2" placeholder="Código" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
-          <input className="border rounded-lg px-4 py-2" placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-          <input className="border rounded-lg px-4 py-2" placeholder="Raza" value={raza} onChange={(e) => setRaza(e.target.value)} />
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-sm text-gray-500">Sanos</p>
+          <h2 className="text-3xl font-bold text-green-700">
+            {totalSanos}
+          </h2>
+        </div>
 
-          <select className="border rounded-lg px-4 py-2" value={sexo} onChange={(e) => setSexo(e.target.value)}>
-            <option value="MACHO">Macho</option>
-            <option value="HEMBRA">Hembra</option>
-          </select>
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-sm text-gray-500">Enfermos</p>
+          <h2 className="text-3xl font-bold text-red-600">
+            {totalEnfermos}
+          </h2>
+        </div>
 
-          <input type="date" className="border rounded-lg px-4 py-2" value={fechaNacimiento} onChange={(e) => setFechaNacimiento(e.target.value)} />
-          <input type="number" step="0.01" className="border rounded-lg px-4 py-2" placeholder="Peso actual" value={pesoActual} onChange={(e) => setPesoActual(e.target.value)} />
-
-          <select className="border rounded-lg px-4 py-2" value={estadoSalud} onChange={(e) => setEstadoSalud(e.target.value)}>
-            <option value="SANO">Sano</option>
-            <option value="ENFERMO">Enfermo</option>
-            <option value="EN_TRATAMIENTO">En tratamiento</option>
-            <option value="VENDIDO">Vendido</option>
-            <option value="MUERTO">Muerto</option>
-          </select>
-
-          <div className="flex gap-2 md:col-span-4">
-            <button className="bg-green-700 text-white px-4 py-2 rounded-lg">
-              {editandoId ? 'Actualizar' : 'Guardar'}
-            </button>
-
-            {editandoId && (
-              <button type="button" onClick={limpiarFormulario} className="bg-gray-500 text-white px-4 py-2 rounded-lg">
-                Cancelar
-              </button>
-            )}
-          </div>
-        </form>
-      </section>
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-sm text-gray-500">En tratamiento</p>
+          <h2 className="text-3xl font-bold text-yellow-600">
+            {totalTratamiento}
+          </h2>
+        </div>
+      </div>
 
       <section className="bg-white rounded-xl shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">Listado de animales</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800">
+            Listado de animales
+          </h2>
+
+          <span className="text-sm text-gray-500">
+            Total: {animales.length}
+          </span>
+        </div>
 
         {loading ? (
-          <p>Cargando animales...</p>
+          <p className="text-gray-500">Cargando animales...</p>
         ) : animales.length === 0 ? (
-          <p className="text-gray-500">No hay animales registrados.</p>
+          <EmptyState
+            title="No hay animales registrados"
+            description="Registra tu primer animal para empezar a controlar vacunas, peso, salud y trazabilidad."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b text-gray-600">
-                  <th className="py-2">Código</th>
+                  <th className="py-3">Código</th>
                   <th>Nombre</th>
                   <th>Raza</th>
                   <th>Sexo</th>
                   <th>Peso</th>
                   <th>Estado</th>
                   <th>Finca</th>
-                  <th>Acciones</th>
+                  <th className="text-right">Acciones</th>
                 </tr>
               </thead>
+
               <tbody>
                 {animales.map((animal) => (
-                  <tr key={animal.id_animal} className="border-b">
-                    <td className="py-3">{animal.codigo}</td>
-                    <td>{animal.nombre || 'Sin nombre'}</td>
-                    <td>{animal.raza || 'N/A'}</td>
-                    <td>{animal.sexo}</td>
-                    <td>{animal.peso_actual || 'N/A'} kg</td>
-                    <td>{animal.estado_salud}</td>
-                    <td>{animal.nombre_finca || 'N/A'}</td>
-                    <td className="flex gap-2 py-3">
-                      <button onClick={() => handleEditar(animal)} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm">Editar</button>
-                      <button onClick={() => handleEliminar(animal.id_animal)} className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm">Eliminar</button>
+                  <tr key={animal.id_animal} className="border-b hover:bg-gray-50">
+                    <td className="py-4 font-medium text-gray-800">
+                      {animal.codigo}
+                    </td>
+
+                    <td className="text-gray-600">
+                      {animal.nombre || 'Sin nombre'}
+                    </td>
+
+                    <td className="text-gray-600">
+                      {animal.raza || 'N/A'}
+                    </td>
+
+                    <td className="text-gray-600">
+                      {animal.sexo}
+                    </td>
+
+                    <td className="text-gray-600">
+                      {animal.peso_actual || 'N/A'} kg
+                    </td>
+
+                    <td>
+                      <Badge variant={getEstadoBadge(animal.estado_salud) as any}>
+                        {animal.estado_salud}
+                      </Badge>
+                    </td>
+
+                    <td className="text-gray-600">
+                      {animal.nombre_finca || 'N/A'}
+                    </td>
+
+                    <td className="py-4">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleEditar(animal)}
+                        >
+                          Editar
+                        </Button>
+
+                        <Button
+                          variant="danger"
+                          onClick={() => handleEliminar(animal.id_animal)}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -244,6 +321,184 @@ function Animales() {
           </div>
         )}
       </section>
+
+      <Modal
+        isOpen={modalAbierto}
+        onClose={cerrarModal}
+        title={editandoId ? 'Editar animal' : 'Registrar animal'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!editandoId && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Finca
+              </label>
+
+              <select
+                value={idFinca}
+                onChange={(e) => setIdFinca(e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              >
+                <option value="">Seleccionar finca</option>
+                {fincas.map((finca) => (
+                  <option key={finca.id_finca} value={finca.id_finca}>
+                    {finca.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {editandoId && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Finca
+              </label>
+
+              <select
+                value={idFinca}
+                disabled
+                className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-100 text-gray-500"
+              >
+                {fincas.map((finca) => (
+                  <option key={finca.id_finca} value={finca.id_finca}>
+                    {finca.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Código
+              </label>
+
+              <input
+                type="text"
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+                placeholder="A001"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Nombre
+              </label>
+
+              <input
+                type="text"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+                placeholder="Toro Bravo"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Raza
+              </label>
+
+              <input
+                type="text"
+                value={raza}
+                onChange={(e) => setRaza(e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+                placeholder="Brahman"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Sexo
+              </label>
+
+              <select
+                value={sexo}
+                onChange={(e) => setSexo(e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              >
+                <option value="MACHO">Macho</option>
+                <option value="HEMBRA">Hembra</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Fecha de nacimiento
+              </label>
+
+              <input
+                type="date"
+                value={fechaNacimiento}
+                onChange={(e) => setFechaNacimiento(e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Peso actual kg
+              </label>
+
+              <input
+                type="number"
+                step="0.01"
+                value={pesoActual}
+                onChange={(e) => setPesoActual(e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+                placeholder="450"
+              />
+
+              {!editandoId && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Este peso se guardará automáticamente como primer control de peso.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Estado de salud
+            </label>
+
+            <select
+              value={estadoSalud}
+              onChange={(e) => setEstadoSalud(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="SANO">Sano</option>
+              <option value="ENFERMO">Enfermo</option>
+              <option value="EN_TRATAMIENTO">En tratamiento</option>
+              <option value="VENDIDO">Vendido</option>
+              <option value="MUERTO">Muerto</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={cerrarModal}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">
+              {editandoId ? 'Actualizar animal' : 'Guardar animal'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

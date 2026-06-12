@@ -40,83 +40,169 @@ function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-green-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-green-700 text-center">
-          Crear cuenta
-        </h1>
+    <div className="min-h-screen bg-slate-950 text-white">
+      <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
+        <section className="hidden lg:flex flex-col justify-between bg-slate-900 px-12 py-10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 border border-green-500/40 text-xl shadow-lg">
+              🚜
+            </div>
 
-        <p className="text-gray-500 text-center mt-2">
-          Regístrate para empezar a usar GanadoApp
-        </p>
-
-        {error && (
-          <div className="mt-4 bg-red-100 text-red-700 p-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-
-        {mensaje && (
-          <div className="mt-4 bg-green-100 text-green-700 p-3 rounded-lg text-sm">
-            {mensaje}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Nombre
-            </label>
-            <input
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
-              placeholder="Juan Pérez"
-            />
+            <div>
+              <h1 className="text-2xl font-bold">
+                GanadoApp
+              </h1>
+              <p className="text-sm text-slate-400">
+                Gestión agropecuaria
+              </p>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Correo
-            </label>
-            <input
-              type="email"
-              value={correo}
-              onChange={(e) => setCorreo(e.target.value)}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
-              placeholder="ejemplo@correo.com"
-            />
+          <div className="max-w-xl">
+            <span className="inline-flex rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300">
+              Digitalización para fincas ganaderas
+            </span>
+
+            <h2 className="mt-8 text-5xl font-bold leading-tight">
+              Empieza a controlar tu operación ganadera con datos reales.
+            </h2>
+
+            <p className="mt-6 text-lg text-slate-300">
+              Registra animales, controla peso, vacunas, gastos e ingresos desde una plataforma moderna.
+            </p>
+
+            <div className="mt-10 space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <p className="font-semibold text-green-400">
+                  Inventario ganadero
+                </p>
+                <p className="mt-1 text-sm text-slate-400">
+                  Administra animales por finca, estado de salud y trazabilidad.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <p className="font-semibold text-green-400">
+                  Control sanitario y financiero
+                </p>
+                <p className="mt-1 text-sm text-slate-400">
+                  Registra vacunas, peso, gastos, ingresos y balance general.
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Contraseña
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
-              placeholder="********"
-            />
+          <p className="text-sm text-slate-500">
+            GanadoApp · Gestión agropecuaria
+          </p>
+        </section>
+
+        <section className="flex items-center justify-center px-6 py-10">
+          <div className="w-full max-w-md">
+            <div className="mb-8 flex justify-center lg:hidden">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 border border-green-500/40 text-xl shadow-lg">
+                  🚜
+                </div>
+
+                <div>
+                  <h1 className="text-2xl font-bold">
+                    GanadoApp
+                  </h1>
+                  <p className="text-sm text-slate-400">
+                    Gestión agropecuaria
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold">
+                  Crear cuenta
+                </h2>
+
+                <p className="mt-2 text-slate-400">
+                  Regístrate para empezar a usar GanadoApp.
+                </p>
+              </div>
+
+              {error && (
+                <div className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+                  {error}
+                </div>
+              )}
+
+              {mensaje && (
+                <div className="mb-5 rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-300">
+                  {mensaje}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300">
+                    Nombre completo
+                  </label>
+
+                  <input
+                    type="text"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
+                    placeholder="Juan Pérez"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300">
+                    Correo electrónico
+                  </label>
+
+                  <input
+                    type="email"
+                    value={correo}
+                    onChange={(e) => setCorreo(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
+                    placeholder="ejemplo@correo.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300">
+                    Contraseña
+                  </label>
+
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
+                    placeholder="********"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-xl bg-green-600 px-4 py-3 font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? 'Registrando...' : 'Crear cuenta'}
+                </button>
+              </form>
+
+              <p className="mt-6 text-center text-sm text-slate-400">
+                ¿Ya tienes cuenta?{' '}
+                <Link
+                  to="/login"
+                  className="font-semibold text-green-400 hover:text-green-300"
+                >
+                  Iniciar sesión
+                </Link>
+              </p>
+            </div>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-green-700 text-white py-2 rounded-lg hover:bg-green-800 disabled:opacity-60"
-          >
-            {loading ? 'Registrando...' : 'Registrarme'}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-gray-600 mt-6">
-          ¿Ya tienes cuenta?{' '}
-          <Link to="/login" className="text-green-700 font-semibold">
-            Inicia sesión
-          </Link>
-        </p>
+        </section>
       </div>
     </div>
   )

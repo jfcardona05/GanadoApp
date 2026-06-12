@@ -23,6 +23,13 @@ import {
 } from '../services/finanzaService'
 import type { Gasto, Ingreso } from '../services/finanzaService'
 
+import Modal from '../components/Modal'
+import Button from '../components/Button'
+import PageHeader from '../components/PageHeader'
+import EmptyState from '../components/EmptyState'
+import Alert from '../components/Alert'
+import Badge from '../components/Badge'
+
 function Finanzas() {
   const [fincas, setFincas] = useState<Finca[]>([])
   const [categorias, setCategorias] = useState<CategoriaFinanciera[]>([])
@@ -45,6 +52,9 @@ function Finanzas() {
   const [descripcion, setDescripcion] = useState('')
   const [monto, setMonto] = useState('')
   const [fecha, setFecha] = useState('')
+
+  const [modalCategoriaAbierto, setModalCategoriaAbierto] = useState(false)
+  const [modalMovimientoAbierto, setModalMovimientoAbierto] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -91,17 +101,42 @@ function Finanzas() {
   }, [])
 
   const limpiarFormularioCategoria = () => {
-    setNombreCategoria('')
     setTipoCategoria('GASTO')
+    setNombreCategoria('')
     setEditandoCategoriaId(null)
   }
 
   const limpiarFormularioMovimiento = () => {
+    setTipoMovimiento('GASTO')
     setIdFinca('')
     setIdCategoria('')
     setDescripcion('')
     setMonto('')
     setFecha('')
+  }
+
+  const abrirModalCategoria = () => {
+    limpiarFormularioCategoria()
+    setError('')
+    setMensaje('')
+    setModalCategoriaAbierto(true)
+  }
+
+  const cerrarModalCategoria = () => {
+    setModalCategoriaAbierto(false)
+    limpiarFormularioCategoria()
+  }
+
+  const abrirModalMovimiento = () => {
+    limpiarFormularioMovimiento()
+    setError('')
+    setMensaje('')
+    setModalMovimientoAbierto(true)
+  }
+
+  const cerrarModalMovimiento = () => {
+    setModalMovimientoAbierto(false)
+    limpiarFormularioMovimiento()
   }
 
   const cambiarTipoMovimiento = (tipo: 'GASTO' | 'INGRESO') => {
@@ -119,12 +154,12 @@ function Finanzas() {
       return
     }
 
-    try {
-      const data = {
-        nombre: nombreCategoria,
-        tipo: tipoCategoria,
-      }
+    const data = {
+      nombre: nombreCategoria,
+      tipo: tipoCategoria,
+    }
 
+    try {
       if (editandoCategoriaId) {
         await updateCategoriaFinanciera(editandoCategoriaId, data)
         setMensaje('Categoría actualizada correctamente')
@@ -133,7 +168,7 @@ function Finanzas() {
         setMensaje('Categoría creada correctamente')
       }
 
-      limpiarFormularioCategoria()
+      cerrarModalCategoria()
       cargarDatos()
     } catch (error: any) {
       setError(error.response?.data?.message || 'Error al guardar categoría')
@@ -146,6 +181,7 @@ function Finanzas() {
     setTipoCategoria(categoria.tipo)
     setError('')
     setMensaje('')
+    setModalCategoriaAbierto(true)
   }
 
   const eliminarCategoria = async (id: number) => {
@@ -174,6 +210,11 @@ function Finanzas() {
       return
     }
 
+    if (Number(monto) <= 0) {
+      setError('El monto debe ser mayor a cero')
+      return
+    }
+
     const data = {
       id_finca: Number(idFinca),
       id_categoria: Number(idCategoria),
@@ -191,7 +232,7 @@ function Finanzas() {
         setMensaje('Ingreso registrado correctamente')
       }
 
-      limpiarFormularioMovimiento()
+      cerrarModalMovimiento()
       cargarDatos()
     } catch (error: any) {
       setError(error.response?.data?.message || 'Error al guardar movimiento')
@@ -221,60 +262,52 @@ function Finanzas() {
     }
   }
 
-  const obtenerNombreCategoriaMovimiento = (
-    movimiento: Gasto | Ingreso
-  ) => {
-    return (
-      movimiento.nombre_categoria ||
-      movimiento.categoria ||
-      'Sin categoría'
-    )
+  const obtenerNombreCategoriaMovimiento = (movimiento: Gasto | Ingreso) => {
+    return movimiento.nombre_categoria || movimiento.categoria || 'Sin categoría'
   }
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-2">
-        Finanzas
-      </h1>
+      <PageHeader
+        title="Finanzas"
+        description="Crea categorías personalizadas y registra gastos e ingresos de tus fincas."
+        action={
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={abrirModalCategoria}>
+              Nueva categoría
+            </Button>
 
-      <p className="text-gray-500 mb-6">
-        Crea tus propias categorías y registra gastos e ingresos de la finca.
-      </p>
+            <Button onClick={abrirModalMovimiento}>
+              Registrar movimiento
+            </Button>
+          </div>
+        }
+      />
 
       {error && (
-        <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
-          {error}
-        </div>
+        <Alert type="error" message={error} />
       )}
 
       {mensaje && (
-        <div className="bg-green-100 text-green-700 p-4 rounded-lg mb-4">
-          {mensaje}
-        </div>
+        <Alert type="success" message={mensaje} />
       )}
 
-      {loading && (
-        <div className="bg-white rounded-xl shadow p-4 mb-6 text-gray-500">
-          Cargando información financiera...
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow p-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl shadow p-5">
           <p className="text-sm text-gray-500">Ingresos</p>
           <h2 className="text-2xl font-bold text-green-700">
             ${Number(resumen.total_ingresos).toLocaleString()}
           </h2>
         </div>
 
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-white rounded-xl shadow p-5">
           <p className="text-sm text-gray-500">Gastos</p>
           <h2 className="text-2xl font-bold text-red-600">
             ${Number(resumen.total_gastos).toLocaleString()}
           </h2>
         </div>
 
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-white rounded-xl shadow p-5">
           <p className="text-sm text-gray-500">Balance</p>
           <h2
             className={`text-2xl font-bold ${
@@ -284,235 +317,145 @@ function Finanzas() {
             ${Number(resumen.balance).toLocaleString()}
           </h2>
         </div>
+
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-sm text-gray-500">Categorías</p>
+          <h2 className="text-2xl font-bold text-green-700">
+            {categorias.length}
+          </h2>
+        </div>
       </div>
 
       <section className="bg-white rounded-xl shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          Categorías financieras
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800">
+            Categorías financieras
+          </h2>
 
-        <form
-          onSubmit={guardarCategoria}
-          className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"
-        >
-          <input
-            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
-            placeholder="Nombre de categoría"
-            value={nombreCategoria}
-            onChange={(e) => setNombreCategoria(e.target.value)}
+          <span className="text-sm text-gray-500">
+            Total: {categorias.length}
+          </span>
+        </div>
+
+        {loading ? (
+          <p className="text-gray-500">Cargando categorías...</p>
+        ) : categorias.length === 0 ? (
+          <EmptyState
+            title="No hay categorías financieras"
+            description="Crea categorías de gasto e ingreso para registrar movimientos financieros de forma organizada."
           />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-3">
+                Categorías de gasto
+              </h3>
 
-          <select
-            className="border border-gray-300 rounded-lg px-4 py-2"
-            value={tipoCategoria}
-            onChange={(e) => setTipoCategoria(e.target.value as 'GASTO' | 'INGRESO')}
-          >
-            <option value="GASTO">Gasto</option>
-            <option value="INGRESO">Ingreso</option>
-          </select>
+              {categoriasGasto.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No hay categorías de gasto.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {categoriasGasto.map((categoria) => (
+                    <div
+                      key={categoria.id_categoria}
+                      className="flex items-center justify-between rounded-lg border p-3 hover:bg-gray-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Badge variant="red">Gasto</Badge>
+                        <span className="font-medium text-gray-800">
+                          {categoria.nombre}
+                        </span>
+                      </div>
 
-          <button className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg">
-            {editandoCategoriaId ? 'Actualizar categoría' : 'Crear categoría'}
-          </button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={() => editarCategoria(categoria)}
+                        >
+                          Editar
+                        </Button>
 
-          {editandoCategoriaId && (
-            <button
-              type="button"
-              onClick={limpiarFormularioCategoria}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
-            >
-              Cancelar
-            </button>
-          )}
-        </form>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <h3 className="font-semibold text-gray-700 mb-3">
-              Categorías de gasto
-            </h3>
-
-            {categoriasGasto.length === 0 ? (
-              <p className="text-gray-500 text-sm">
-                No hay categorías de gasto.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {categoriasGasto.map((categoria) => (
-                  <div
-                    key={categoria.id_categoria}
-                    className="border rounded-lg p-3 flex justify-between items-center"
-                  >
-                    <span>{categoria.nombre}</span>
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => editarCategoria(categoria)}
-                        className="text-sm bg-blue-600 text-white px-3 py-1 rounded-lg"
-                      >
-                        Editar
-                      </button>
-
-                      <button
-                        onClick={() => eliminarCategoria(categoria.id_categoria)}
-                        className="text-sm bg-red-600 text-white px-3 py-1 rounded-lg"
-                      >
-                        Eliminar
-                      </button>
+                        <Button
+                          variant="danger"
+                          onClick={() => eliminarCategoria(categoria.id_categoria)}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <div>
-            <h3 className="font-semibold text-gray-700 mb-3">
-              Categorías de ingreso
-            </h3>
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-3">
+                Categorías de ingreso
+              </h3>
 
-            {categoriasIngreso.length === 0 ? (
-              <p className="text-gray-500 text-sm">
-                No hay categorías de ingreso.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {categoriasIngreso.map((categoria) => (
-                  <div
-                    key={categoria.id_categoria}
-                    className="border rounded-lg p-3 flex justify-between items-center"
-                  >
-                    <span>{categoria.nombre}</span>
+              {categoriasIngreso.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No hay categorías de ingreso.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {categoriasIngreso.map((categoria) => (
+                    <div
+                      key={categoria.id_categoria}
+                      className="flex items-center justify-between rounded-lg border p-3 hover:bg-gray-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Badge variant="green">Ingreso</Badge>
+                        <span className="font-medium text-gray-800">
+                          {categoria.nombre}
+                        </span>
+                      </div>
 
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => editarCategoria(categoria)}
-                        className="text-sm bg-blue-600 text-white px-3 py-1 rounded-lg"
-                      >
-                        Editar
-                      </button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={() => editarCategoria(categoria)}
+                        >
+                          Editar
+                        </Button>
 
-                      <button
-                        onClick={() => eliminarCategoria(categoria.id_categoria)}
-                        className="text-sm bg-red-600 text-white px-3 py-1 rounded-lg"
-                      >
-                        Eliminar
-                      </button>
+                        <Button
+                          variant="danger"
+                          onClick={() => eliminarCategoria(categoria.id_categoria)}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-white rounded-xl shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          Registrar movimiento
-        </h2>
-
-        <div className="flex gap-2 mb-4">
-          <button
-            type="button"
-            onClick={() => cambiarTipoMovimiento('GASTO')}
-            className={`px-4 py-2 rounded-lg ${
-              tipoMovimiento === 'GASTO'
-                ? 'bg-red-600 text-white'
-                : 'bg-gray-200 text-gray-700'
-            }`}
-          >
-            Gasto
-          </button>
-
-          <button
-            type="button"
-            onClick={() => cambiarTipoMovimiento('INGRESO')}
-            className={`px-4 py-2 rounded-lg ${
-              tipoMovimiento === 'INGRESO'
-                ? 'bg-green-700 text-white'
-                : 'bg-gray-200 text-gray-700'
-            }`}
-          >
-            Ingreso
-          </button>
-        </div>
-
-        {categoriasMovimiento.length === 0 && (
-          <div className="bg-yellow-100 text-yellow-800 p-4 rounded-lg mb-4">
-            Primero debes crear una categoría de tipo{' '}
-            <strong>{tipoMovimiento === 'GASTO' ? 'gasto' : 'ingreso'}</strong>{' '}
-            para registrar este movimiento.
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
-
-        <form
-          onSubmit={guardarMovimiento}
-          className="grid grid-cols-1 md:grid-cols-5 gap-4"
-        >
-          <select
-            className="border border-gray-300 rounded-lg px-4 py-2"
-            value={idFinca}
-            onChange={(e) => setIdFinca(e.target.value)}
-          >
-            <option value="">Seleccionar finca</option>
-            {fincas.map((finca) => (
-              <option key={finca.id_finca} value={finca.id_finca}>
-                {finca.nombre}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="border border-gray-300 rounded-lg px-4 py-2"
-            value={idCategoria}
-            onChange={(e) => setIdCategoria(e.target.value)}
-          >
-            <option value="">Seleccionar categoría</option>
-            {categoriasMovimiento.map((categoria) => (
-              <option key={categoria.id_categoria} value={categoria.id_categoria}>
-                {categoria.nombre}
-              </option>
-            ))}
-          </select>
-
-          <input
-            className="border border-gray-300 rounded-lg px-4 py-2"
-            placeholder="Descripción"
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-          />
-
-          <input
-            type="number"
-            className="border border-gray-300 rounded-lg px-4 py-2"
-            placeholder="Monto"
-            value={monto}
-            onChange={(e) => setMonto(e.target.value)}
-          />
-
-          <input
-            type="date"
-            className="border border-gray-300 rounded-lg px-4 py-2"
-            value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
-          />
-
-          <button
-            disabled={categoriasMovimiento.length === 0}
-            className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg md:col-span-5 disabled:opacity-50"
-          >
-            Guardar movimiento
-          </button>
-        </form>
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Gastos</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Gastos
+            </h2>
 
-          {gastos.length === 0 ? (
-            <p className="text-gray-500">No hay gastos registrados.</p>
+            <span className="text-sm text-gray-500">
+              Total: {gastos.length}
+            </span>
+          </div>
+
+          {loading ? (
+            <p className="text-gray-500">Cargando gastos...</p>
+          ) : gastos.length === 0 ? (
+            <EmptyState
+              title="No hay gastos registrados"
+              description="Registra gastos como alimentación, medicamentos, transporte o mano de obra."
+            />
           ) : (
             <div className="space-y-3">
               {gastos.map((gasto) => (
@@ -521,14 +464,19 @@ function Finanzas() {
                   className="border-b pb-3 flex justify-between gap-4"
                 >
                   <div>
-                    <p className="font-semibold">
-                      {obtenerNombreCategoriaMovimiento(gasto)}
-                    </p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="red">Gasto</Badge>
+                      <p className="font-semibold text-gray-800">
+                        {obtenerNombreCategoriaMovimiento(gasto)}
+                      </p>
+                    </div>
+
                     <p className="text-sm text-gray-500">
                       {gasto.descripcion || 'Sin descripción'}
                     </p>
+
                     <p className="text-sm text-gray-500">
-                      {gasto.nombre_finca} - {gasto.fecha?.slice(0, 10)}
+                      {gasto.nombre_finca || 'N/A'} - {gasto.fecha?.slice(0, 10)}
                     </p>
                   </div>
 
@@ -536,9 +484,10 @@ function Finanzas() {
                     <p className="font-bold text-red-600">
                       ${Number(gasto.monto).toLocaleString()}
                     </p>
+
                     <button
                       onClick={() => eliminarMovimiento('GASTO', gasto.id_gasto)}
-                      className="text-sm text-red-600"
+                      className="text-sm text-red-600 hover:underline"
                     >
                       Eliminar
                     </button>
@@ -550,10 +499,23 @@ function Finanzas() {
         </div>
 
         <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Ingresos</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Ingresos
+            </h2>
 
-          {ingresos.length === 0 ? (
-            <p className="text-gray-500">No hay ingresos registrados.</p>
+            <span className="text-sm text-gray-500">
+              Total: {ingresos.length}
+            </span>
+          </div>
+
+          {loading ? (
+            <p className="text-gray-500">Cargando ingresos...</p>
+          ) : ingresos.length === 0 ? (
+            <EmptyState
+              title="No hay ingresos registrados"
+              description="Registra ingresos como venta de ganado, venta de leche u otros movimientos."
+            />
           ) : (
             <div className="space-y-3">
               {ingresos.map((ingreso) => (
@@ -562,14 +524,19 @@ function Finanzas() {
                   className="border-b pb-3 flex justify-between gap-4"
                 >
                   <div>
-                    <p className="font-semibold">
-                      {obtenerNombreCategoriaMovimiento(ingreso)}
-                    </p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="green">Ingreso</Badge>
+                      <p className="font-semibold text-gray-800">
+                        {obtenerNombreCategoriaMovimiento(ingreso)}
+                      </p>
+                    </div>
+
                     <p className="text-sm text-gray-500">
                       {ingreso.descripcion || 'Sin descripción'}
                     </p>
+
                     <p className="text-sm text-gray-500">
-                      {ingreso.nombre_finca} - {ingreso.fecha?.slice(0, 10)}
+                      {ingreso.nombre_finca || 'N/A'} - {ingreso.fecha?.slice(0, 10)}
                     </p>
                   </div>
 
@@ -577,9 +544,10 @@ function Finanzas() {
                     <p className="font-bold text-green-700">
                       ${Number(ingreso.monto).toLocaleString()}
                     </p>
+
                     <button
                       onClick={() => eliminarMovimiento('INGRESO', ingreso.id_ingreso)}
-                      className="text-sm text-red-600"
+                      className="text-sm text-red-600 hover:underline"
                     >
                       Eliminar
                     </button>
@@ -590,6 +558,188 @@ function Finanzas() {
           )}
         </div>
       </section>
+
+      <Modal
+        isOpen={modalCategoriaAbierto}
+        onClose={cerrarModalCategoria}
+        title={editandoCategoriaId ? 'Editar categoría' : 'Nueva categoría'}
+      >
+        <form onSubmit={guardarCategoria} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Tipo de categoría
+            </label>
+
+            <select
+              value={tipoCategoria}
+              onChange={(e) => setTipoCategoria(e.target.value as 'GASTO' | 'INGRESO')}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="GASTO">Gasto</option>
+              <option value="INGRESO">Ingreso</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Nombre de la categoría
+            </label>
+
+            <input
+              type="text"
+              value={nombreCategoria}
+              onChange={(e) => setNombreCategoria(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              placeholder="Concentrado, Veterinario, Venta de leche..."
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={cerrarModalCategoria}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">
+              {editandoCategoriaId ? 'Actualizar categoría' : 'Guardar categoría'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={modalMovimientoAbierto}
+        onClose={cerrarModalMovimiento}
+        title="Registrar movimiento"
+      >
+        <form onSubmit={guardarMovimiento} className="space-y-4">
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={tipoMovimiento === 'GASTO' ? 'danger' : 'secondary'}
+              onClick={() => cambiarTipoMovimiento('GASTO')}
+            >
+              Gasto
+            </Button>
+
+            <Button
+              type="button"
+              variant={tipoMovimiento === 'INGRESO' ? 'primary' : 'secondary'}
+              onClick={() => cambiarTipoMovimiento('INGRESO')}
+            >
+              Ingreso
+            </Button>
+          </div>
+
+          {categoriasMovimiento.length === 0 && (
+            <Alert
+              type="warning"
+              message={`Primero debes crear una categoría de tipo ${
+                tipoMovimiento === 'GASTO' ? 'gasto' : 'ingreso'
+              } para registrar este movimiento.`}
+            />
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Finca
+            </label>
+
+            <select
+              value={idFinca}
+              onChange={(e) => setIdFinca(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="">Seleccionar finca</option>
+              {fincas.map((finca) => (
+                <option key={finca.id_finca} value={finca.id_finca}>
+                  {finca.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Categoría
+            </label>
+
+            <select
+              value={idCategoria}
+              onChange={(e) => setIdCategoria(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="">Seleccionar categoría</option>
+              {categoriasMovimiento.map((categoria) => (
+                <option key={categoria.id_categoria} value={categoria.id_categoria}>
+                  {categoria.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Descripción
+            </label>
+
+            <input
+              type="text"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              placeholder="Detalle del movimiento"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Monto
+            </label>
+
+            <input
+              type="number"
+              value={monto}
+              onChange={(e) => setMonto(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              placeholder="250000"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Fecha
+            </label>
+
+            <input
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={cerrarModalMovimiento}
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              type="submit"
+              disabled={categoriasMovimiento.length === 0}
+            >
+              Guardar movimiento
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

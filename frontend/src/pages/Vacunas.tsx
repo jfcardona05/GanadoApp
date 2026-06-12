@@ -19,6 +19,13 @@ import {
 } from '../services/registroVacunacionService'
 import type { RegistroVacunacion } from '../services/registroVacunacionService'
 
+import Modal from '../components/Modal'
+import Button from '../components/Button'
+import PageHeader from '../components/PageHeader'
+import EmptyState from '../components/EmptyState'
+import Alert from '../components/Alert'
+import Badge from '../components/Badge'
+
 function Vacunas() {
   const [vacunas, setVacunas] = useState<Vacuna[]>([])
   const [animales, setAnimales] = useState<Animal[]>([])
@@ -28,7 +35,7 @@ function Vacunas() {
   const [descripcion, setDescripcion] = useState('')
   const [frecuenciaDias, setFrecuenciaDias] = useState('')
   const [obligatoria, setObligatoria] = useState(false)
-  const [editandoId, setEditandoId] = useState<number | null>(null)
+  const [editandoVacunaId, setEditandoVacunaId] = useState<number | null>(null)
 
   const [idAnimal, setIdAnimal] = useState('')
   const [idVacuna, setIdVacuna] = useState('')
@@ -36,11 +43,17 @@ function Vacunas() {
   const [veterinario, setVeterinario] = useState('')
   const [observaciones, setObservaciones] = useState('')
 
+  const [modalVacunaAbierto, setModalVacunaAbierto] = useState(false)
+  const [modalRegistroAbierto, setModalRegistroAbierto] = useState(false)
+
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
 
   const cargarDatos = async () => {
     try {
+      setLoading(true)
+
       const [vacunasData, animalesData, registrosData] = await Promise.all([
         getVacunas(),
         getAnimales(),
@@ -51,7 +64,9 @@ function Vacunas() {
       setAnimales(animalesData)
       setRegistros(registrosData)
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Error al cargar datos')
+      setError(error.response?.data?.message || 'Error al cargar vacunas')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -59,12 +74,44 @@ function Vacunas() {
     cargarDatos()
   }, [])
 
-  const limpiarVacuna = () => {
+  const limpiarFormularioVacuna = () => {
     setNombre('')
     setDescripcion('')
     setFrecuenciaDias('')
     setObligatoria(false)
-    setEditandoId(null)
+    setEditandoVacunaId(null)
+  }
+
+  const limpiarFormularioRegistro = () => {
+    setIdAnimal('')
+    setIdVacuna('')
+    setFechaAplicacion('')
+    setVeterinario('')
+    setObservaciones('')
+  }
+
+  const abrirModalCrearVacuna = () => {
+    limpiarFormularioVacuna()
+    setError('')
+    setMensaje('')
+    setModalVacunaAbierto(true)
+  }
+
+  const cerrarModalVacuna = () => {
+    setModalVacunaAbierto(false)
+    limpiarFormularioVacuna()
+  }
+
+  const abrirModalRegistro = () => {
+    limpiarFormularioRegistro()
+    setError('')
+    setMensaje('')
+    setModalRegistroAbierto(true)
+  }
+
+  const cerrarModalRegistro = () => {
+    setModalRegistroAbierto(false)
+    limpiarFormularioRegistro()
   }
 
   const guardarVacuna = async (e: FormEvent) => {
@@ -85,15 +132,15 @@ function Vacunas() {
     }
 
     try {
-      if (editandoId) {
-        await updateVacuna(editandoId, data)
+      if (editandoVacunaId) {
+        await updateVacuna(editandoVacunaId, data)
         setMensaje('Vacuna actualizada correctamente')
       } else {
         await createVacuna(data)
         setMensaje('Vacuna creada correctamente')
       }
 
-      limpiarVacuna()
+      cerrarModalVacuna()
       cargarDatos()
     } catch (error: any) {
       setError(error.response?.data?.message || 'Error al guardar vacuna')
@@ -101,17 +148,20 @@ function Vacunas() {
   }
 
   const editarVacuna = (vacuna: Vacuna) => {
-    setEditandoId(vacuna.id_vacuna)
+    setEditandoVacunaId(vacuna.id_vacuna)
     setNombre(vacuna.nombre)
     setDescripcion(vacuna.descripcion || '')
     setFrecuenciaDias(vacuna.frecuencia_dias ? String(vacuna.frecuencia_dias) : '')
     setObligatoria(Boolean(vacuna.obligatoria))
     setError('')
     setMensaje('')
+    setModalVacunaAbierto(true)
   }
 
   const eliminarVacuna = async (id: number) => {
-    if (!window.confirm('¿Eliminar esta vacuna?')) return
+    const confirmar = window.confirm('¿Seguro que deseas eliminar esta vacuna?')
+
+    if (!confirmar) return
 
     try {
       await deleteVacuna(id)
@@ -147,12 +197,7 @@ function Vacunas() {
         setMensaje('Vacunación registrada correctamente. Esta vacuna no tiene frecuencia definida.')
       }
 
-      setIdAnimal('')
-      setIdVacuna('')
-      setFechaAplicacion('')
-      setVeterinario('')
-      setObservaciones('')
-
+      cerrarModalRegistro()
       cargarDatos()
     } catch (error: any) {
       setError(error.response?.data?.message || 'Error al registrar vacunación')
@@ -160,7 +205,9 @@ function Vacunas() {
   }
 
   const eliminarRegistro = async (id: number) => {
-    if (!window.confirm('¿Eliminar este registro de vacunación?')) return
+    const confirmar = window.confirm('¿Seguro que deseas eliminar este registro de vacunación?')
+
+    if (!confirmar) return
 
     try {
       await deleteRegistroVacunacion(id)
@@ -196,138 +243,367 @@ function Vacunas() {
 
   const proximaFechaCalculada = calcularProximaFechaVisual()
 
+  const totalObligatorias = vacunas.filter((vacuna) => Boolean(vacuna.obligatoria)).length
+  const totalRegistros = registros.length
+  const totalProximas = registros.filter((registro) => registro.proxima_fecha).length
+
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-2">
-        Vacunas y salud
-      </h1>
+      <PageHeader
+        title="Vacunas y salud"
+        description="Administra el catálogo de vacunas y el historial sanitario del ganado."
+        action={
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={abrirModalRegistro}>
+              Registrar vacunación
+            </Button>
 
-      <p className="text-gray-500 mb-6">
-        Administra vacunas y registros sanitarios.
-      </p>
+            <Button onClick={abrirModalCrearVacuna}>
+              Crear vacuna
+            </Button>
+          </div>
+        }
+      />
 
       {error && (
-        <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
-          {error}
-        </div>
+        <Alert type="error" message={error} />
       )}
 
       {mensaje && (
-        <div className="bg-green-100 text-green-700 p-4 rounded-lg mb-4">
-          {mensaje}
-        </div>
+        <Alert type="success" message={mensaje} />
       )}
 
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-sm text-gray-500">Vacunas registradas</p>
+          <h2 className="text-3xl font-bold text-green-700">
+            {vacunas.length}
+          </h2>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-sm text-gray-500">Obligatorias</p>
+          <h2 className="text-3xl font-bold text-blue-600">
+            {totalObligatorias}
+          </h2>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-sm text-gray-500">Vacunaciones</p>
+          <h2 className="text-3xl font-bold text-green-700">
+            {totalRegistros}
+          </h2>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-sm text-gray-500">Próximas calculadas</p>
+          <h2 className="text-3xl font-bold text-yellow-600">
+            {totalProximas}
+          </h2>
+        </div>
+      </div>
+
       <section className="bg-white rounded-xl shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">
-          {editandoId ? 'Editar vacuna' : 'Crear vacuna'}
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800">
+            Catálogo de vacunas
+          </h2>
 
-        <form onSubmit={guardarVacuna} className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <input
-            className="border rounded-lg px-4 py-2"
-            placeholder="Nombre"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
+          <span className="text-sm text-gray-500">
+            Total: {vacunas.length}
+          </span>
+        </div>
+
+        {loading ? (
+          <p className="text-gray-500">Cargando vacunas...</p>
+        ) : vacunas.length === 0 ? (
+          <EmptyState
+            title="No hay vacunas registradas"
+            description="Crea vacunas con frecuencia en días para calcular automáticamente la próxima aplicación."
           />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b text-gray-600">
+                  <th className="py-3">Nombre</th>
+                  <th>Descripción</th>
+                  <th>Frecuencia</th>
+                  <th>Obligatoria</th>
+                  <th className="text-right">Acciones</th>
+                </tr>
+              </thead>
 
-          <input
-            className="border rounded-lg px-4 py-2"
-            placeholder="Descripción"
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
+              <tbody>
+                {vacunas.map((vacuna) => (
+                  <tr key={vacuna.id_vacuna} className="border-b hover:bg-gray-50">
+                    <td className="py-4 font-medium text-gray-800">
+                      {vacuna.nombre}
+                    </td>
+
+                    <td className="text-gray-600">
+                      {vacuna.descripcion || 'Sin descripción'}
+                    </td>
+
+                    <td className="text-gray-600">
+                      {vacuna.frecuencia_dias ? `${vacuna.frecuencia_dias} días` : 'N/A'}
+                    </td>
+
+                    <td>
+                      {vacuna.obligatoria ? (
+                        <Badge variant="blue">Obligatoria</Badge>
+                      ) : (
+                        <Badge variant="gray">Opcional</Badge>
+                      )}
+                    </td>
+
+                    <td className="py-4">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={() => editarVacuna(vacuna)}
+                        >
+                          Editar
+                        </Button>
+
+                        <Button
+                          variant="danger"
+                          onClick={() => eliminarVacuna(vacuna.id_vacuna)}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="bg-white rounded-xl shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800">
+            Historial de vacunación
+          </h2>
+
+          <span className="text-sm text-gray-500">
+            Total: {registros.length}
+          </span>
+        </div>
+
+        {loading ? (
+          <p className="text-gray-500">Cargando historial...</p>
+        ) : registros.length === 0 ? (
+          <EmptyState
+            title="No hay registros de vacunación"
+            description="Registra la aplicación de una vacuna para empezar a construir el historial sanitario."
           />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b text-gray-600">
+                  <th className="py-3">Animal</th>
+                  <th>Vacuna</th>
+                  <th>Frecuencia</th>
+                  <th>Aplicación</th>
+                  <th>Próxima</th>
+                  <th>Veterinario</th>
+                  <th className="text-right">Acciones</th>
+                </tr>
+              </thead>
 
-          <input
-            type="number"
-            className="border rounded-lg px-4 py-2"
-            placeholder="Frecuencia días"
-            value={frecuenciaDias}
-            onChange={(e) => setFrecuenciaDias(e.target.value)}
-          />
+              <tbody>
+                {registros.map((registro) => (
+                  <tr key={registro.id_registro} className="border-b hover:bg-gray-50">
+                    <td className="py-4 font-medium text-gray-800">
+                      {registro.nombre_animal || registro.codigo_animal}
+                    </td>
 
-          <label className="flex items-center gap-2">
+                    <td className="text-gray-600">
+                      {registro.nombre_vacuna}
+                    </td>
+
+                    <td className="text-gray-600">
+                      {registro.frecuencia_dias
+                        ? `${registro.frecuencia_dias} días`
+                        : 'N/A'}
+                    </td>
+
+                    <td className="text-gray-600">
+                      {registro.fecha_aplicacion?.slice(0, 10)}
+                    </td>
+
+                    <td>
+                      {registro.proxima_fecha ? (
+                        <Badge variant="yellow">
+                          {registro.proxima_fecha.slice(0, 10)}
+                        </Badge>
+                      ) : (
+                        <Badge variant="gray">Sin frecuencia</Badge>
+                      )}
+                    </td>
+
+                    <td className="text-gray-600">
+                      {registro.veterinario || 'N/A'}
+                    </td>
+
+                    <td className="py-4">
+                      <div className="flex justify-end">
+                        <Button
+                          variant="danger"
+                          onClick={() => eliminarRegistro(registro.id_registro)}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <Modal
+        isOpen={modalVacunaAbierto}
+        onClose={cerrarModalVacuna}
+        title={editandoVacunaId ? 'Editar vacuna' : 'Crear vacuna'}
+      >
+        <form onSubmit={guardarVacuna} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Nombre de la vacuna
+            </label>
+
+            <input
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              placeholder="Fiebre Aftosa"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Descripción
+            </label>
+
+            <input
+              type="text"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              placeholder="Vacuna obligatoria aplicada cada 6 meses"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Frecuencia en días
+            </label>
+
+            <input
+              type="number"
+              value={frecuenciaDias}
+              onChange={(e) => setFrecuenciaDias(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              placeholder="180"
+            />
+
+            <p className="mt-1 text-xs text-gray-500">
+              Esta frecuencia se usará para calcular automáticamente la próxima aplicación.
+            </p>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-gray-700">
             <input
               type="checkbox"
               checked={obligatoria}
               onChange={(e) => setObligatoria(e.target.checked)}
             />
-            Obligatoria
+            Marcar como obligatoria
           </label>
 
-          <div className="flex gap-2">
-            <button className="bg-green-700 text-white px-4 py-2 rounded-lg">
-              {editandoId ? 'Actualizar' : 'Guardar'}
-            </button>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={cerrarModalVacuna}
+            >
+              Cancelar
+            </Button>
 
-            {editandoId && (
-              <button
-                type="button"
-                onClick={limpiarVacuna}
-                className="bg-gray-500 text-white px-4 py-2 rounded-lg"
-              >
-                Cancelar
-              </button>
-            )}
+            <Button type="submit">
+              {editandoVacunaId ? 'Actualizar vacuna' : 'Guardar vacuna'}
+            </Button>
           </div>
         </form>
-      </section>
+      </Modal>
 
-      <section className="bg-white rounded-xl shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">
-          Registrar vacunación
-        </h2>
+      <Modal
+        isOpen={modalRegistroAbierto}
+        onClose={cerrarModalRegistro}
+        title="Registrar vacunación"
+      >
+        <form onSubmit={registrarVacunacion} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Animal
+            </label>
 
-        <form onSubmit={registrarVacunacion} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <select
-            className="border rounded-lg px-4 py-2"
-            value={idAnimal}
-            onChange={(e) => setIdAnimal(e.target.value)}
-          >
-            <option value="">Seleccionar animal</option>
-            {animales.map((animal) => (
-              <option key={animal.id_animal} value={animal.id_animal}>
-                {animal.codigo} - {animal.nombre || 'Sin nombre'}
-              </option>
-            ))}
-          </select>
+            <select
+              value={idAnimal}
+              onChange={(e) => setIdAnimal(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="">Seleccionar animal</option>
+              {animales.map((animal) => (
+                <option key={animal.id_animal} value={animal.id_animal}>
+                  {animal.codigo} - {animal.nombre || 'Sin nombre'}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <select
-            className="border rounded-lg px-4 py-2"
-            value={idVacuna}
-            onChange={(e) => setIdVacuna(e.target.value)}
-          >
-            <option value="">Seleccionar vacuna</option>
-            {vacunas.map((vacuna) => (
-              <option key={vacuna.id_vacuna} value={vacuna.id_vacuna}>
-                {vacuna.nombre}
-              </option>
-            ))}
-          </select>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Vacuna
+            </label>
 
-          <input
-            type="date"
-            className="border rounded-lg px-4 py-2"
-            value={fechaAplicacion}
-            onChange={(e) => setFechaAplicacion(e.target.value)}
-          />
+            <select
+              value={idVacuna}
+              onChange={(e) => setIdVacuna(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="">Seleccionar vacuna</option>
+              {vacunas.map((vacuna) => (
+                <option key={vacuna.id_vacuna} value={vacuna.id_vacuna}>
+                  {vacuna.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <input
-            className="border rounded-lg px-4 py-2"
-            placeholder="Veterinario"
-            value={veterinario}
-            onChange={(e) => setVeterinario(e.target.value)}
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Fecha de aplicación
+            </label>
 
-          <input
-            className="border rounded-lg px-4 py-2 md:col-span-2"
-            placeholder="Observaciones"
-            value={observaciones}
-            onChange={(e) => setObservaciones(e.target.value)}
-          />
+            <input
+              type="date"
+              value={fechaAplicacion}
+              onChange={(e) => setFechaAplicacion(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
+          </div>
 
           {idVacuna && fechaAplicacion && (
-            <div className="md:col-span-3 bg-green-50 border border-green-200 text-green-800 rounded-lg p-4">
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
               {proximaFechaCalculada ? (
                 <p>
                   Próxima aplicación calculada automáticamente:{' '}
@@ -341,121 +617,49 @@ function Vacunas() {
             </div>
           )}
 
-          <button className="bg-green-700 text-white px-4 py-2 rounded-lg md:col-span-3">
-            Registrar vacunación
-          </button>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Veterinario
+            </label>
+
+            <input
+              type="text"
+              value={veterinario}
+              onChange={(e) => setVeterinario(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              placeholder="Dr. Carlos Pérez"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Observaciones
+            </label>
+
+            <textarea
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
+              placeholder="Aplicación normal sin reacciones"
+              rows={3}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={cerrarModalRegistro}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">
+              Registrar vacunación
+            </Button>
+          </div>
         </form>
-      </section>
-
-      <section className="bg-white rounded-xl shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">
-          Catálogo de vacunas
-        </h2>
-
-        {vacunas.length === 0 ? (
-          <p className="text-gray-500">No hay vacunas registradas.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b text-gray-600">
-                  <th className="py-2">Nombre</th>
-                  <th>Descripción</th>
-                  <th>Frecuencia</th>
-                  <th>Obligatoria</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {vacunas.map((vacuna) => (
-                  <tr key={vacuna.id_vacuna} className="border-b">
-                    <td className="py-3">{vacuna.nombre}</td>
-                    <td>{vacuna.descripcion || 'Sin descripción'}</td>
-                    <td>{vacuna.frecuencia_dias || 'N/A'} días</td>
-                    <td>{vacuna.obligatoria ? 'Sí' : 'No'}</td>
-
-                    <td className="flex gap-2 py-3">
-                      <button
-                        onClick={() => editarVacuna(vacuna)}
-                        className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm"
-                      >
-                        Editar
-                      </button>
-
-                      <button
-                        onClick={() => eliminarVacuna(vacuna.id_vacuna)}
-                        className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="bg-white rounded-xl shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">
-          Historial de vacunación
-        </h2>
-
-        {registros.length === 0 ? (
-          <p className="text-gray-500">No hay registros de vacunación.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b text-gray-600">
-                  <th className="py-2">Animal</th>
-                  <th>Vacuna</th>
-                  <th>Frecuencia</th>
-                  <th>Aplicación</th>
-                  <th>Próxima</th>
-                  <th>Veterinario</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {registros.map((registro) => (
-                  <tr key={registro.id_registro} className="border-b">
-                    <td className="py-3">
-                      {registro.nombre_animal || registro.codigo_animal}
-                    </td>
-
-                    <td>{registro.nombre_vacuna}</td>
-
-                    <td>
-                      {'frecuencia_dias' in registro && registro.frecuencia_dias
-                        ? `${registro.frecuencia_dias} días`
-                        : 'N/A'}
-                    </td>
-
-                    <td>{registro.fecha_aplicacion?.slice(0, 10)}</td>
-
-                    <td>{registro.proxima_fecha?.slice(0, 10) || 'N/A'}</td>
-
-                    <td>{registro.veterinario || 'N/A'}</td>
-
-                    <td>
-                      <button
-                        onClick={() => eliminarRegistro(registro.id_registro)}
-                        className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      </Modal>
     </div>
   )
 }
