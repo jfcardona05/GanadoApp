@@ -7,4 +7,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  preview: {
+    host: '0.0.0.0',
+    allowedHosts: [
+      'adorable-alignment-production-153c.up.railway.app',
+    ],
+  },
 })
