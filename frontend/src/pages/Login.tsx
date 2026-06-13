@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { Beef } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { loginUser } from '../services/authService'
+import { getErrorMessage } from '../utils/errors'
 
 function Login() {
   const navigate = useNavigate()
@@ -17,40 +19,37 @@ function Login() {
     setLoading(true)
 
     try {
-      const data = await loginUser({
-        correo,
-        password,
-      })
+      const data = await loginUser({ correo, password })
 
       localStorage.setItem('token', data.token)
       localStorage.setItem('usuario', JSON.stringify(data.usuario))
 
       navigate('/dashboard')
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Error al iniciar sesión')
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Error al iniciar sesión'))
     } finally {
       setLoading(false)
     }
   }
 
+  const Logo = ({ dark = false }: { dark?: boolean }) => (
+    <div className="flex items-center gap-3">
+      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-green-500/40 text-white shadow-lg ${dark ? 'bg-slate-900' : 'bg-slate-950'}`}>
+        <Beef size={30} strokeWidth={2.2} />
+      </div>
+
+      <div>
+        <h1 className="text-2xl font-bold">GanadoApp</h1>
+        <p className="text-sm text-slate-400">Gestión agropecuaria</p>
+      </div>
+    </div>
+  )
+
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-        <section className="hidden lg:flex flex-col justify-between bg-slate-900 px-12 py-10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 border border-green-500/40 text-xl shadow-lg">
-              🚜
-            </div>
-
-            <div>
-              <h1 className="text-2xl font-bold">
-                GanadoApp
-              </h1>
-              <p className="text-sm text-slate-400">
-                Gestión agropecuaria
-              </p>
-            </div>
-          </div>
+        <section className="hidden flex-col justify-between bg-slate-900 px-12 py-10 lg:flex">
+          <Logo />
 
           <div className="max-w-xl">
             <span className="inline-flex rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300">
@@ -91,27 +90,12 @@ function Login() {
         <section className="flex items-center justify-center px-6 py-10">
           <div className="w-full max-w-md">
             <div className="mb-8 flex justify-center lg:hidden">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 border border-green-500/40 text-xl shadow-lg">
-                  🚜
-                </div>
-
-                <div>
-                  <h1 className="text-2xl font-bold">
-                    GanadoApp
-                  </h1>
-                  <p className="text-sm text-slate-400">
-                    Gestión agropecuaria
-                  </p>
-                </div>
-              </div>
+              <Logo dark />
             </div>
 
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur">
               <div className="mb-8">
-                <h2 className="text-3xl font-bold">
-                  Iniciar sesión
-                </h2>
+                <h2 className="text-3xl font-bold">Iniciar sesión</h2>
 
                 <p className="mt-2 text-slate-400">
                   Ingresa para administrar tus fincas y animales.
@@ -164,10 +148,7 @@ function Login() {
 
               <p className="mt-6 text-center text-sm text-slate-400">
                 ¿No tienes cuenta?{' '}
-                <Link
-                  to="/register"
-                  className="font-semibold text-green-400 hover:text-green-300"
-                >
+                <Link to="/register" className="font-semibold text-green-400 hover:text-green-300">
                   Crear cuenta
                 </Link>
               </p>

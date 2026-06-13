@@ -1,31 +1,33 @@
+import { Edit3, MapPin, Plus, Ruler, Search, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 
+import Alert from '../components/Alert'
+import Button from '../components/Button'
+import ConfirmDialog from '../components/ConfirmDialog'
+import EmptyState from '../components/EmptyState'
+import Modal from '../components/Modal'
+import PageHeader from '../components/PageHeader'
+import Panel from '../components/Panel'
+import StatCard from '../components/StatCard'
 import {
   createFinca,
   deleteFinca,
   getFincas,
   updateFinca,
 } from '../services/fincaService'
-
 import type { Finca } from '../services/fincaService'
-
-import Modal from '../components/Modal'
-import Button from '../components/Button'
-import PageHeader from '../components/PageHeader'
-import EmptyState from '../components/EmptyState'
-import Alert from '../components/Alert'
+import { getErrorMessage } from '../utils/errors'
 
 function Fincas() {
   const [fincas, setFincas] = useState<Finca[]>([])
-
   const [nombre, setNombre] = useState('')
   const [ubicacion, setUbicacion] = useState('')
   const [hectareas, setHectareas] = useState('')
-
   const [editandoId, setEditandoId] = useState<number | null>(null)
   const [modalAbierto, setModalAbierto] = useState(false)
-
+  const [fincaAEliminar, setFincaAEliminar] = useState<number | null>(null)
+  const [busqueda, setBusqueda] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
@@ -35,14 +37,15 @@ function Fincas() {
       setLoading(true)
       const data = await getFincas()
       setFincas(data)
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Error al cargar fincas')
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Error al cargar fincas'))
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarFincas()
   }, [])
 
@@ -92,8 +95,8 @@ function Fincas() {
 
       cerrarModal()
       cargarFincas()
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Error al guardar finca')
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Error al guardar finca'))
     }
   }
 
@@ -108,173 +111,159 @@ function Fincas() {
   }
 
   const handleEliminar = async (id: number) => {
-    const confirmar = window.confirm('¿Seguro que deseas eliminar esta finca?')
-
-    if (!confirmar) return
-
     try {
       await deleteFinca(id)
       setMensaje('Finca eliminada correctamente')
       cargarFincas()
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Error al eliminar finca')
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Error al eliminar finca'))
     }
   }
+
+  const totalHectareas = fincas.reduce((total, finca) => total + Number(finca.hectareas || 0), 0)
+  const fincasFiltradas = fincas.filter((finca) => {
+    const texto = `${finca.nombre} ${finca.ubicacion || ''}`.toLowerCase()
+    return texto.includes(busqueda.toLowerCase())
+  })
 
   return (
     <div>
       <PageHeader
         title="Fincas"
-        description="Administra las fincas registradas en GanadoApp."
+        description="Administra las unidades productivas donde gestionas animales, pesos, vacunas y finanzas."
         action={
-          <Button onClick={abrirModalCrear}>
+          <Button onClick={abrirModalCrear} icon={<Plus size={17} />}>
             Nueva finca
           </Button>
         }
       />
 
-      {error && (
-        <Alert type="error" message={error} />
-      )}
+      {error && <Alert type="error" message={error} />}
+      {mensaje && <Alert type="success" message={mensaje} />}
 
-      {mensaje && (
-        <Alert type="success" message={mensaje} />
-      )}
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <StatCard title="Fincas registradas" value={fincas.length} icon={<MapPin size={20} />} helper="Predios activos en la cuenta" />
+        <StatCard
+          title="Hectáreas registradas"
+          value={totalHectareas ? totalHectareas.toLocaleString() : 'N/A'}
+          icon={<Ruler size={20} />}
+          tone="slate"
+          helper="Suma de hectáreas informadas"
+        />
+      </div>
 
-      <section className="bg-white rounded-xl shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Listado de fincas
-          </h2>
-
-          <span className="text-sm text-gray-500">
-            Total: {fincas.length}
-          </span>
+      <Panel title="Listado de fincas" count={fincasFiltradas.length}>
+        <div className="mb-4">
+          <label className="mb-1 block text-sm font-semibold text-slate-700">Buscar finca</label>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="w-full pl-10"
+              placeholder="Nombre o ubicación"
+            />
+          </div>
         </div>
 
         {loading ? (
-          <p className="text-gray-500">Cargando fincas...</p>
+          <p className="text-sm text-slate-500">Cargando fincas...</p>
         ) : fincas.length === 0 ? (
           <EmptyState
             title="No hay fincas registradas"
             description="Crea tu primera finca para empezar a registrar animales, pesos, vacunas y finanzas."
           />
+        ) : fincasFiltradas.length === 0 ? (
+          <EmptyState title="No encontramos fincas" description="Prueba con otro nombre o ubicación." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b text-gray-600">
-                  <th className="py-3">Nombre</th>
-                  <th>Ubicación</th>
-                  <th>Hectáreas</th>
-                  <th className="text-right">Acciones</th>
-                </tr>
-              </thead>
+          <>
+            <div className="grid gap-3 md:hidden">
+              {fincasFiltradas.map((finca) => (
+                <div key={finca.id_finca} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <p className="font-semibold text-slate-950">{finca.nombre}</p>
+                  <p className="mt-1 text-sm text-slate-500">{finca.ubicacion || 'Ubicación no registrada'}</p>
+                  <p className="mt-1 text-sm text-slate-500">{finca.hectareas || 'N/A'} hectáreas</p>
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <Button variant="secondary" size="sm" icon={<Edit3 size={15} />} onClick={() => handleEditar(finca)}>
+                      Editar
+                    </Button>
+                    <Button variant="danger" size="sm" icon={<Trash2 size={15} />} onClick={() => setFincaAEliminar(finca.id_finca)}>
+                      Eliminar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-              <tbody>
-                {fincas.map((finca) => (
-                  <tr key={finca.id_finca} className="border-b hover:bg-gray-50">
-                    <td className="py-4 font-medium text-gray-800">
-                      {finca.nombre}
-                    </td>
-
-                    <td className="text-gray-600">
-                      {finca.ubicacion || 'No registrada'}
-                    </td>
-
-                    <td className="text-gray-600">
-                      {finca.hectareas || 'N/A'}
-                    </td>
-
-                    <td className="py-4">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="secondary"
-                          onClick={() => handleEditar(finca)}
-                        >
-                          Editar
-                        </Button>
-
-                        <Button
-                          variant="danger"
-                          onClick={() => handleEliminar(finca.id_finca)}
-                        >
-                          Eliminar
-                        </Button>
-                      </div>
-                    </td>
+            <div className="hidden overflow-x-auto rounded-lg border border-slate-200 md:block">
+              <table className="w-full min-w-[680px] text-left">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Ubicación</th>
+                    <th>Hectáreas</th>
+                    <th className="text-right">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {fincasFiltradas.map((finca) => (
+                    <tr key={finca.id_finca} className="hover:bg-slate-50">
+                      <td className="font-semibold text-slate-900">{finca.nombre}</td>
+                      <td className="text-slate-600">{finca.ubicacion || 'No registrada'}</td>
+                      <td className="text-slate-600">{finca.hectareas || 'N/A'}</td>
+                      <td>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="secondary" size="sm" icon={<Edit3 size={15} />} onClick={() => handleEditar(finca)}>
+                            Editar
+                          </Button>
+                          <Button variant="danger" size="sm" icon={<Trash2 size={15} />} onClick={() => setFincaAEliminar(finca.id_finca)}>
+                            Eliminar
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
-      </section>
+      </Panel>
 
-      <Modal
-        isOpen={modalAbierto}
-        onClose={cerrarModal}
-        title={editandoId ? 'Editar finca' : 'Nueva finca'}
-      >
+      <Modal isOpen={modalAbierto} onClose={cerrarModal} title={editandoId ? 'Editar finca' : 'Nueva finca'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Nombre de la finca
-            </label>
-
-            <input
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
-              placeholder="Finca El Paraíso"
-            />
+            <label className="block text-sm font-semibold text-slate-700">Nombre de la finca</label>
+            <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} className="mt-1 w-full" placeholder="Finca El Paraíso" />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Ubicación
-            </label>
-
-            <input
-              type="text"
-              value={ubicacion}
-              onChange={(e) => setUbicacion(e.target.value)}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
-              placeholder="Villavicencio, Meta"
-            />
+            <label className="block text-sm font-semibold text-slate-700">Ubicación</label>
+            <input type="text" value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} className="mt-1 w-full" placeholder="Villavicencio, Meta" />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Hectáreas
-            </label>
-
-            <input
-              type="number"
-              step="0.01"
-              value={hectareas}
-              onChange={(e) => setHectareas(e.target.value)}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-600"
-              placeholder="25.5"
-            />
+            <label className="block text-sm font-semibold text-slate-700">Hectáreas</label>
+            <input type="number" step="0.01" value={hectareas} onChange={(e) => setHectareas(e.target.value)} className="mt-1 w-full" placeholder="25.5" />
           </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={cerrarModal}
-            >
-              Cancelar
-            </Button>
-
-            <Button type="submit">
-              {editandoId ? 'Actualizar finca' : 'Guardar finca'}
-            </Button>
+          <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+            <Button type="button" variant="secondary" onClick={cerrarModal}>Cancelar</Button>
+            <Button type="submit">{editandoId ? 'Actualizar finca' : 'Guardar finca'}</Button>
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={fincaAEliminar !== null}
+        title="Eliminar finca"
+        message="Vas a eliminar esta finca. Si tiene animales o movimientos asociados, el sistema podría impedir la eliminación para proteger tus datos."
+        onCancel={() => setFincaAEliminar(null)}
+        onConfirm={() => {
+          if (fincaAEliminar !== null) {
+            handleEliminar(fincaAEliminar)
+            setFincaAEliminar(null)
+          }
+        }}
+      />
     </div>
   )
 }

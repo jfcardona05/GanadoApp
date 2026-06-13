@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-slate-100 text-slate-800 antialiased;
+  }
+
+  input,
+  select,
+  textarea {
+    @apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-green-600 focus:ring-2 focus:ring-green-600/20 disabled:bg-slate-100 disabled:text-slate-500;
+  }
+
+  table {
+    @apply text-sm;
+  }
+
+  th {
+    @apply bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+
+  td {
+    @apply px-4 py-3 align-middle;
+  }
+}
