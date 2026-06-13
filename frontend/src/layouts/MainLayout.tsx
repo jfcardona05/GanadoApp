@@ -185,12 +185,7 @@ function MainLayout() {
               </div>
             </div>
 
-            <div className="hidden items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 sm:flex">
-              <UserRound size={16} />
-              <span className="max-w-44 truncate font-medium">
-                {usuario?.nombre || 'Ganadero'}
-              </span>
-            </div>
+            <div />
           </div>
         </header>
 
