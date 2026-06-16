@@ -62,6 +62,10 @@ interface DashboardData {
   }
 }
 
+interface GanaderiaAlerta {
+  prioridad?: string
+}
+
 const actionLinks = [
   {
     title: 'Registrar animal',
@@ -104,7 +108,7 @@ const actionLinks = [
 function Dashboard() {
   const navigate = useNavigate()
   const [data, setData] = useState<DashboardData | null>(null)
-  const [alertas, setAlertas] = useState<Record<string, any>[]>([])
+  const [alertas, setAlertas] = useState<GanaderiaAlerta[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -238,7 +242,7 @@ function Dashboard() {
     <div>
       <PageHeader
         title="Qué hacer hoy"
-        description="Aquí ves lo más importante primero. Si no sabes por dónde empezar, revisa las tareas recomendadas."
+        description="Una vista ejecutiva de la finca: tareas urgentes, salud del ganado, vacunas próximas y situación financiera."
       />
 
       {vacunasVencidas.length > 0 && <Alert type="error" message={`Atención: tienes ${vacunasVencidas.length} vacuna(s) vencida(s).`} />}
@@ -259,28 +263,28 @@ function Dashboard() {
               <Link
                 key={tarea.title}
                 to={tarea.to}
-                className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-green-300 hover:bg-green-50"
+                className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50/70 hover:shadow-md"
               >
-                <span className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                <span className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                   tarea.tone === 'red'
                     ? 'bg-red-50 text-red-600'
                     : tarea.tone === 'yellow'
-                      ? 'bg-yellow-50 text-yellow-700'
-                      : 'bg-green-50 text-green-700'
+                      ? 'bg-amber-50 text-amber-700'
+                      : 'bg-emerald-50 text-emerald-700'
                 }`}
                 >
                   {tarea.tone === 'green' ? <CheckCircle2 size={19} /> : <AlertTriangle size={19} />}
                 </span>
                 <span>
                   <span className="block font-semibold text-slate-950">{tarea.title}</span>
-                  <span className="mt-1 block text-sm leading-6 text-slate-500">{tarea.detail}</span>
+                  <span className="mt-1 block text-sm leading-6 text-slate-600">{tarea.detail}</span>
                 </span>
               </Link>
             ))}
           </div>
         </Panel>
 
-        <Panel title="Botones rápidos" helper="Usa estos botones para las acciones más comunes.">
+        <Panel title="Accesos de trabajo" helper="Entradas rápidas a los módulos que más se consultan en la operación diaria.">
           <div className="grid gap-3 sm:grid-cols-2">
             {actionLinks.map((action) => {
               const Icon = action.icon
@@ -288,13 +292,13 @@ function Dashboard() {
                 <Link
                   key={action.to}
                   to={action.to}
-                  className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-green-300 hover:bg-green-50"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50/70 hover:shadow-md"
                 >
-                  <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-green-700">
+                  <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
                     <Icon size={18} />
                   </span>
                   <p className="font-semibold text-slate-900">{action.title}</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">{action.detail}</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">{action.detail}</p>
                 </Link>
               )
             })}
@@ -309,9 +313,9 @@ function Dashboard() {
           ) : (
             <div className="space-y-3">
               {data.animales_por_salud.map((item) => (
-                <div key={item.estado_salud} className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3">
+                <div key={item.estado_salud} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-50 text-green-700">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
                       <HeartPulse size={17} />
                     </span>
                     <span className="font-medium text-slate-700">{item.estado_salud}</span>
@@ -332,7 +336,7 @@ function Dashboard() {
                 const dias = daysUntil(vacuna.proxima_fecha)
                 const vencida = dias < 0
                 return (
-                  <div key={vacuna.id_registro} className="rounded-lg border border-slate-200 px-4 py-3">
+                  <div key={vacuna.id_registro} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="font-semibold text-slate-900">{vacuna.nombre_vacuna}</p>
@@ -358,7 +362,7 @@ function Dashboard() {
           ) : (
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {data.ultimos_animales.map((animal) => (
-                <div key={animal.id_animal} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div key={animal.id_animal} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
                   <p className="font-semibold text-slate-950">{animal.nombre || animal.codigo}</p>
                   <p className="mt-1 text-sm text-slate-500">{animal.nombre_finca} · {animal.peso_actual || 'N/A'} kg</p>
                   <p className="mt-1 text-sm text-slate-500">{animal.raza || 'Raza no registrada'} · {animal.sexo}</p>

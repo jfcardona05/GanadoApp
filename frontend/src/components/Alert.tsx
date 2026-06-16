@@ -7,10 +7,10 @@ interface AlertProps {
 
 function Alert({ type, message }: AlertProps) {
   const styles = {
-    success: 'bg-green-50 text-green-800 border-green-200',
-    error: 'bg-red-50 text-red-800 border-red-200',
-    warning: 'bg-yellow-50 text-yellow-900 border-yellow-200',
-    info: 'bg-blue-50 text-blue-800 border-blue-200',
+    success: 'bg-emerald-50 text-emerald-900 border-emerald-200 ring-emerald-100',
+    error: 'bg-red-50 text-red-900 border-red-200 ring-red-100',
+    warning: 'bg-amber-50 text-amber-950 border-amber-200 ring-amber-100',
+    info: 'bg-sky-50 text-sky-900 border-sky-200 ring-sky-100',
   }
 
   const icons = {
@@ -23,9 +23,9 @@ function Alert({ type, message }: AlertProps) {
   const Icon = icons[type]
 
   return (
-    <div className={`mb-4 flex items-start gap-3 rounded-lg border px-4 py-3 text-sm ${styles[type]}`}>
+    <div className={`mb-4 flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm shadow-sm ring-1 ${styles[type]}`}>
       <Icon className="mt-0.5 shrink-0" size={18} />
-      <span>{message}</span>
+      <span className="leading-6">{message}</span>
     </div>
   )
 }

@@ -16,14 +16,14 @@ function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    'inline-flex items-center justify-center gap-2 rounded-lg border text-sm font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-green-600/30 disabled:cursor-not-allowed disabled:opacity-50'
+    'inline-flex items-center justify-center gap-2 rounded-xl border text-sm font-semibold shadow-sm transition duration-200 focus:outline-none focus:ring-4 focus:ring-emerald-600/15 disabled:cursor-not-allowed disabled:opacity-50'
 
   const variants = {
-    primary: 'border-green-700 bg-green-700 text-white hover:bg-green-800',
-    secondary: 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
-    danger: 'border-red-600 bg-red-600 text-white hover:bg-red-700',
-    outline: 'border-slate-300 bg-transparent text-slate-700 hover:bg-slate-100',
-    ghost: 'border-transparent bg-transparent text-slate-600 shadow-none hover:bg-slate-100 hover:text-slate-900',
+    primary: 'border-emerald-700 bg-gradient-to-br from-emerald-500 to-emerald-800 text-white shadow-emerald-900/20 hover:-translate-y-0.5 hover:from-emerald-400 hover:to-emerald-700',
+    secondary: 'border-emerald-950/10 bg-[#fff8ec] text-emerald-950 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-900',
+    danger: 'border-red-600 bg-gradient-to-br from-red-600 to-red-700 text-white shadow-red-900/15 hover:-translate-y-0.5 hover:from-red-500 hover:to-red-700',
+    outline: 'border-emerald-200 bg-white/70 text-emerald-800 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50',
+    ghost: 'border-transparent bg-transparent text-slate-600 shadow-none hover:bg-slate-100/80 hover:text-slate-950',
   }
 
   const sizes = {

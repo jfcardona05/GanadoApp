@@ -182,7 +182,7 @@ function Pesos() {
           <>
             <div className="grid gap-3 md:hidden">
               {pesosFiltrados.map((registro) => (
-                <div key={registro.id_peso} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div key={registro.id_peso} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-slate-950">{registro.nombre_animal || registro.codigo_animal}</p>
@@ -200,7 +200,7 @@ function Pesos() {
               ))}
             </div>
 
-            <div className="hidden overflow-x-auto rounded-lg border border-slate-200 md:block">
+            <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
               <table className="w-full min-w-[860px] text-left">
                 <thead>
                   <tr>
@@ -241,7 +241,7 @@ function Pesos() {
           </div>
 
           {idAnimal && obtenerAnimalSeleccionado() && (
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
               Peso actual registrado del animal: <strong>{obtenerAnimalSeleccionado()?.peso_actual || 'N/A'} kg</strong>
             </div>
           )}

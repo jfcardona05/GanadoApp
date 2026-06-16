@@ -403,7 +403,7 @@ function Animales() {
           <>
             <div className="grid gap-3 md:hidden">
               {animalesFiltrados.map((animal) => (
-                <div key={animal.id_animal} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div key={animal.id_animal} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-slate-950">{animal.nombre || animal.codigo}</p>
@@ -420,7 +420,7 @@ function Animales() {
               ))}
             </div>
 
-            <div className="hidden overflow-x-auto rounded-lg border border-slate-200 md:block">
+            <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
               <table className="w-full min-w-[1100px] text-left">
                 <thead>
                   <tr>
@@ -462,7 +462,7 @@ function Animales() {
 
       <Modal isOpen={modalAbierto} onClose={cerrarModal} title={editandoId ? 'Editar animal' : 'Registrar animal'}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
             Llena primero código, finca y sexo. Lo demás ayuda a tener una ficha más completa, pero puede quedar vacío.
           </div>
 
@@ -578,7 +578,7 @@ function Animales() {
 
       <Modal isOpen={modalPesoAbierto} onClose={() => setModalPesoAbierto(false)} title={`Registrar peso${animalAccion ? `: ${animalAccion.nombre || animalAccion.codigo}` : ''}`}>
         <form onSubmit={guardarPesoRapido} className="space-y-4">
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
             Peso actual registrado: <strong>{animalAccion?.peso_actual || 'N/A'} kg</strong>
           </div>
           <label className="block">

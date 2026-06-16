@@ -180,7 +180,7 @@ function Fincas() {
           <>
             <div className="grid gap-3 md:hidden">
               {fincasFiltradas.map((finca) => (
-                <div key={finca.id_finca} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div key={finca.id_finca} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
                   <p className="font-semibold text-slate-950">{finca.nombre}</p>
                   <p className="mt-1 text-sm text-slate-500">{finca.ubicacion || 'Ubicación no registrada'}</p>
                   <p className="mt-1 text-sm text-slate-500">{finca.hectareas || 'N/A'} hectáreas</p>
@@ -196,7 +196,7 @@ function Fincas() {
               ))}
             </div>
 
-            <div className="hidden overflow-x-auto rounded-lg border border-slate-200 md:block">
+            <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
               <table className="w-full min-w-[680px] text-left">
                 <thead>
                   <tr>

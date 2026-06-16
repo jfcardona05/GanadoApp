@@ -1,9 +1,25 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Beef } from 'lucide-react'
+import { Beef, CheckCircle2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import heroImage from '../assets/hero.jpg'
 import { registerUser } from '../services/authService'
 import { getErrorMessage } from '../utils/errors'
+
+function AuthLogo() {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-200/40 bg-emerald-950/80 text-white shadow-lg shadow-emerald-950/40">
+        <Beef size={30} strokeWidth={2.2} />
+      </div>
+
+      <div>
+        <h1 className="text-2xl font-bold text-white">GanadoApp</h1>
+        <p className="text-sm text-emerald-100/85">Gestión agropecuaria</p>
+      </div>
+    </div>
+  )
+}
 
 function Register() {
   const navigate = useNavigate()
@@ -41,90 +57,89 @@ function Register() {
     }
   }
 
-  const Logo = ({ dark = false }: { dark?: boolean }) => (
-    <div className="flex items-center gap-3">
-      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-green-500/40 text-white shadow-lg ${dark ? 'bg-slate-900' : 'bg-slate-950'}`}>
-        <Beef size={30} strokeWidth={2.2} />
-      </div>
-
-      <div>
-        <h1 className="text-2xl font-bold">GanadoApp</h1>
-        <p className="text-sm text-slate-400">Gestión agropecuaria</p>
-      </div>
-    </div>
-  )
-
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-        <section className="hidden flex-col justify-between bg-slate-900 px-12 py-10 lg:flex">
-          <Logo />
+    <div className="min-h-screen overflow-hidden bg-[#ead7bd] text-emerald-950">
+      <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.12fr_0.88fr]">
+        <section className="relative hidden overflow-hidden bg-emerald-950 px-12 py-10 text-white lg:order-2 lg:flex lg:flex-col lg:justify-between">
+          <img src={heroImage} alt="" className="absolute inset-0 h-full w-full scale-105 object-cover opacity-85" />
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/92 via-emerald-950/58 to-slate-950/82" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(52,211,153,0.32),transparent_34%),radial-gradient(circle_at_80%_70%,rgba(234,215,189,0.2),transparent_30%)]" />
 
-          <div className="max-w-xl">
-            <span className="inline-flex rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300">
+          <div className="relative">
+            <AuthLogo />
+          </div>
+
+          <div className="relative max-w-2xl">
+            <span className="inline-flex rounded-full border border-emerald-200/35 bg-emerald-300/15 px-4 py-2 text-sm font-semibold text-emerald-50">
               Digitalización para fincas ganaderas
             </span>
 
             <h2 className="mt-8 text-5xl font-bold leading-tight">
-              Empieza a controlar tu operación ganadera con datos reales.
+              Control ganadero, sanitario y financiero en una sola plataforma.
             </h2>
 
-            <p className="mt-6 text-lg text-slate-300">
-              Registra animales, controla peso, vacunas, gastos e ingresos desde una plataforma moderna.
+            <p className="mt-6 max-w-xl text-lg leading-8 text-emerald-50/90">
+              Empieza a registrar tu operación con una herramienta clara, confiable y visualmente lista para mostrar al cliente.
             </p>
 
             <div className="mt-10 space-y-4">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <p className="font-semibold text-green-400">Inventario ganadero</p>
-                <p className="mt-1 text-sm text-slate-400">
-                  Administra animales por finca, estado de salud y trazabilidad.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <p className="font-semibold text-green-400">Control sanitario y financiero</p>
-                <p className="mt-1 text-sm text-slate-400">
-                  Registra vacunas, peso, gastos, ingresos y balance general.
-                </p>
-              </div>
+              {[
+                'Inventario por finca y trazabilidad animal',
+                'Vacunas, peso, salud y reproducción',
+                'Ingresos, gastos, compras y ventas',
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-3 rounded-3xl border border-white/15 bg-white/12 p-4 shadow-lg shadow-emerald-950/20">
+                  <CheckCircle2 className="text-emerald-200" size={20} />
+                  <p className="text-sm font-semibold text-white">{item}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          <p className="text-sm text-slate-500">
-            GanadoApp · Gestión agropecuaria
+          <p className="relative text-sm text-emerald-50/80">
+            Información clara para tomar mejores decisiones en campo.
           </p>
         </section>
 
-        <section className="flex items-center justify-center px-6 py-10">
-          <div className="w-full max-w-md">
+        <section className="relative flex items-center justify-center px-5 py-10 sm:px-8 lg:order-1">
+          <img src={heroImage} alt="" className="absolute inset-0 h-full w-full object-cover opacity-18 lg:hidden" />
+          <div className="absolute inset-0 bg-[#ead7bd]/88 lg:bg-[#ead7bd]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.22),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(101,67,33,0.18),transparent_30%)]" />
+
+          <div className="relative w-full max-w-md">
             <div className="mb-8 flex justify-center lg:hidden">
-              <Logo dark />
+              <div className="rounded-3xl bg-gradient-to-br from-emerald-950 to-emerald-800 p-4 shadow-xl">
+                <AuthLogo />
+              </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur">
+            <div className="rounded-[2rem] border border-emerald-950/10 bg-[#fff8ec]/95 p-7 shadow-xl shadow-emerald-950/20 md:p-8">
               <div className="mb-8">
-                <h2 className="text-3xl font-bold">Crear cuenta</h2>
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">
+                  Nueva cuenta
+                </p>
+                <h2 className="mt-2 text-3xl font-bold text-emerald-950">Crear cuenta</h2>
 
-                <p className="mt-2 text-slate-400">
-                  Regístrate para empezar a usar GanadoApp.
+                <p className="mt-2 text-sm leading-6 text-emerald-950/70">
+                  Regístrate para empezar a controlar tu finca desde GanadoApp.
                 </p>
               </div>
 
               {error && (
-                <div className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+                <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm">
                   {error}
                 </div>
               )}
 
               {mensaje && (
-                <div className="mb-5 rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-300">
+                <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 shadow-sm">
                   {mensaje}
                 </div>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300">
+                  <label className="block text-sm font-semibold text-emerald-950">
                     Nombre completo
                   </label>
 
@@ -132,13 +147,13 @@ function Register() {
                     type="text"
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
+                    className="mt-2 w-full px-4 py-3"
                     placeholder="Juan Pérez"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300">
+                  <label className="block text-sm font-semibold text-emerald-950">
                     Correo electrónico
                   </label>
 
@@ -146,13 +161,13 @@ function Register() {
                     type="email"
                     value={correo}
                     onChange={(e) => setCorreo(e.target.value)}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
+                    className="mt-2 w-full px-4 py-3"
                     placeholder="ejemplo@correo.com"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300">
+                  <label className="block text-sm font-semibold text-emerald-950">
                     Contraseña
                   </label>
 
@@ -160,7 +175,7 @@ function Register() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
+                    className="mt-2 w-full px-4 py-3"
                     placeholder="********"
                   />
                 </div>
@@ -168,15 +183,15 @@ function Register() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-xl bg-green-600 px-4 py-3 font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-800 px-4 py-3.5 font-semibold text-white shadow-lg shadow-emerald-900/25 transition hover:-translate-y-0.5 hover:from-emerald-400 hover:to-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? 'Registrando...' : 'Crear cuenta'}
                 </button>
               </form>
 
-              <p className="mt-6 text-center text-sm text-slate-400">
+              <p className="mt-6 text-center text-sm text-emerald-950/70">
                 ¿Ya tienes cuenta?{' '}
-                <Link to="/login" className="font-semibold text-green-400 hover:text-green-300">
+                <Link to="/login" className="font-semibold text-emerald-700 hover:text-emerald-600">
                   Iniciar sesión
                 </Link>
               </p>
