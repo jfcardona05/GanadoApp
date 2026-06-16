@@ -1,27 +1,63 @@
 import {
   Beef,
+  Bell,
   Building2,
+  ChartNoAxesCombined,
+  ClipboardList,
   DollarSign,
   Gauge,
+  HeartPulse,
   LayoutDashboard,
   LogOut,
   Menu,
+  Package,
+  Route,
   ShieldPlus,
   Sprout,
+  Store,
   UserRound,
   X,
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
-const menuItems = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Fincas', path: '/fincas', icon: Sprout },
-  { label: 'Animales', path: '/animales', icon: Building2 },
-  { label: 'Vacunas', path: '/vacunas', icon: ShieldPlus },
-  { label: 'Control de peso', path: '/pesos', icon: Gauge },
-  { label: 'Finanzas', path: '/finanzas', icon: DollarSign },
+const menuSections = [
+  {
+    title: 'Inicio',
+    items: [
+      { label: 'Qué hacer hoy', shortLabel: 'Hoy', path: '/dashboard', icon: LayoutDashboard },
+      { label: 'Alertas importantes', shortLabel: 'Alertas', path: '/alertas', icon: Bell },
+    ],
+  },
+  {
+    title: 'Mi finca',
+    items: [
+      { label: 'Fincas y predios', shortLabel: 'Fincas', path: '/fincas', icon: Sprout },
+      { label: 'Animales', shortLabel: 'Animales', path: '/animales', icon: Building2 },
+      { label: 'Potreros', shortLabel: 'Potreros', path: '/potreros', icon: Route },
+    ],
+  },
+  {
+    title: 'Cuidado animal',
+    items: [
+      { label: 'Vacunas', shortLabel: 'Vacunas', path: '/vacunas', icon: ShieldPlus },
+      { label: 'Pesos', shortLabel: 'Pesos', path: '/pesos', icon: Gauge },
+      { label: 'Salud y tratamientos', shortLabel: 'Sanidad', path: '/sanidad', icon: ClipboardList },
+      { label: 'Reproducción', shortLabel: 'Reproducción', path: '/reproduccion', icon: HeartPulse },
+    ],
+  },
+  {
+    title: 'Negocio',
+    items: [
+      { label: 'Producción', shortLabel: 'Producción', path: '/produccion', icon: ChartNoAxesCombined },
+      { label: 'Inventario', shortLabel: 'Inventario', path: '/inventario', icon: Package },
+      { label: 'Compras y ventas', shortLabel: 'Comercial', path: '/comercial', icon: Store },
+      { label: 'Finanzas y cuentas', shortLabel: 'Finanzas', path: '/finanzas', icon: DollarSign },
+    ],
+  },
 ]
+
+const menuItems = menuSections.flatMap((section) => section.items)
 
 interface SidebarContentProps {
   usuario: {
@@ -42,50 +78,52 @@ function SidebarContent({ usuario, onClose, onLogout }: SidebarContentProps) {
           </div>
 
           <div>
-            <h1 className="text-lg font-bold leading-tight text-white">
-              GanadoApp
-            </h1>
-            <p className="text-xs font-medium text-slate-400">
-              Gestión ganadera
-            </p>
+            <h1 className="text-lg font-bold leading-tight text-white">GanadoApp</h1>
+            <p className="text-xs font-medium text-slate-400">Gestión ganadera fácil</p>
           </div>
         </div>
       </div>
 
-      <div className="px-4 py-5">
-        <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-          Operación
-        </p>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
+        <nav className="space-y-5">
+          {menuSections.map((section) => (
+            <div key={section.title}>
+              <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                {section.title}
+              </p>
 
-        <nav className="space-y-1.5">
-          {menuItems.map((item) => {
-            const Icon = item.icon
+              <div className="space-y-1.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon
 
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={onClose}
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-                    isActive
-                      ? 'bg-green-600 text-white shadow-lg shadow-green-950/20'
-                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                  }`
-                }
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10">
-                  <Icon size={17} />
-                </span>
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={onClose}
+                      className={({ isActive }) =>
+                        `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                          isActive
+                            ? 'bg-green-600 text-white shadow-lg shadow-green-950/20'
+                            : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        }`
+                      }
+                    >
+                      <span className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10">
+                        <Icon size={17} />
+                      </span>
 
-                <span>{item.label}</span>
-              </NavLink>
-            )
-          })}
+                      <span>{item.label}</span>
+                    </NavLink>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
       </div>
 
-      <div className="mt-auto border-t border-white/10 p-4">
+      <div className="border-t border-white/10 p-4">
         <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-slate-200">
@@ -122,7 +160,7 @@ function MainLayout() {
 
   const usuarioGuardado = localStorage.getItem('usuario')
   const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null
-  const paginaActual = menuItems.find((item) => item.path === location.pathname)?.label || 'GanadoApp'
+  const paginaActual = menuItems.find((item) => item.path === location.pathname)
 
   const cerrarSesion = () => {
     localStorage.removeItem('token')
@@ -177,10 +215,10 @@ function MainLayout() {
 
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Panel interno
+                  Estás en
                 </p>
                 <p className="text-sm font-semibold text-slate-950">
-                  {paginaActual}
+                  {paginaActual?.shortLabel || 'GanadoApp'}
                 </p>
               </div>
             </div>

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 
 import Alert from '../components/Alert'
 import Badge from '../components/Badge'
@@ -421,6 +422,23 @@ function Finanzas() {
             <label className="mb-1 block text-sm font-semibold text-slate-700">Hasta</label>
             <input type="date" value={rangoFecha.hasta} disabled={periodoFiltro !== 'PERSONALIZADO'} onChange={(e) => setFechaHasta(e.target.value)} className="w-full" />
           </div>
+        </div>
+      </Panel>
+
+      <Panel title="Cuentas pendientes" className="mb-6" helper="Aquí puedes revisar deudas por pagar y dinero pendiente por cobrar.">
+        <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-semibold text-slate-900">Controla cuentas por pagar y por cobrar</p>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              Útil para saber qué facturas se deben pagar y qué ventas faltan por cobrar.
+            </p>
+          </div>
+          <Link
+            to="/cuentas"
+            className="inline-flex items-center justify-center rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-800"
+          >
+            Ver cuentas
+          </Link>
         </div>
       </Panel>
 

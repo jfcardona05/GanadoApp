@@ -2,14 +2,18 @@ import {
   Activity,
   AlertTriangle,
   BadgeDollarSign,
+  Bell,
   Building2,
   CalendarClock,
   CheckCircle2,
   HeartPulse,
+  Package,
+  ShieldPlus,
   Wallet,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
+
 import Alert from '../components/Alert'
 import Badge from '../components/Badge'
 import EmptyState from '../components/EmptyState'
@@ -17,6 +21,7 @@ import PageHeader from '../components/PageHeader'
 import Panel from '../components/Panel'
 import StatCard from '../components/StatCard'
 import { getDashboardResumen } from '../services/dashboardService'
+import { ganaderiaService } from '../services/ganaderiaService'
 import { daysUntil, isPastDate, isWithinNextDays } from '../utils/dates'
 import { getErrorMessage } from '../utils/errors'
 
@@ -57,18 +62,63 @@ interface DashboardData {
   }
 }
 
+const actionLinks = [
+  {
+    title: 'Registrar animal',
+    detail: 'Agregar una res nueva al inventario.',
+    to: '/animales',
+    icon: Activity,
+  },
+  {
+    title: 'Revisar alertas',
+    detail: 'Ver vacunas, stock o cuentas pendientes.',
+    to: '/alertas',
+    icon: Bell,
+  },
+  {
+    title: 'Anotar peso',
+    detail: 'Guardar el control de peso de un animal.',
+    to: '/pesos',
+    icon: BadgeDollarSign,
+  },
+  {
+    title: 'Registrar gasto o ingreso',
+    detail: 'Llevar cuentas de la finca.',
+    to: '/finanzas',
+    icon: Wallet,
+  },
+  {
+    title: 'Anotar tratamiento',
+    detail: 'Guardar salud, medicamentos o desparasitación.',
+    to: '/sanidad',
+    icon: ShieldPlus,
+  },
+  {
+    title: 'Registrar producción',
+    detail: 'Leche, lotes de ceba o producción diaria.',
+    to: '/produccion',
+    icon: Package,
+  },
+]
+
 function Dashboard() {
+  const navigate = useNavigate()
   const [data, setData] = useState<DashboardData | null>(null)
+  const [alertas, setAlertas] = useState<Record<string, any>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const cargarDashboard = async () => {
     try {
       setLoading(true)
-      const resumen = await getDashboardResumen()
+      const [resumen, alertasData] = await Promise.all([
+        getDashboardResumen(),
+        ganaderiaService.getAlertas(),
+      ])
       setData(resumen)
+      setAlertas(alertasData)
     } catch (error: unknown) {
-      setError(getErrorMessage(error, 'Error al cargar dashboard'))
+      setError(getErrorMessage(error, 'Error al cargar el inicio'))
     } finally {
       setLoading(false)
     }
@@ -86,13 +136,14 @@ function Dashboard() {
     const animalesTratamiento = data.animales_por_salud.find((item) => item.estado_salud === 'EN_TRATAMIENTO')?.total || 0
     const vacunasVencidas = data.vacunas_proximas.filter((vacuna) => isPastDate(vacuna.proxima_fecha)).length
     const vacunasProximas = data.vacunas_proximas.filter((vacuna) => isWithinNextDays(vacuna.proxima_fecha, 15)).length
+    const alertasAltas = alertas.filter((alerta) => alerta.prioridad === 'ALTA' || alerta.prioridad === 'CRITICA').length
 
     const lista = []
 
     if (data.total_fincas === 0) {
       lista.push({
-        title: 'Crear tu primera finca',
-        detail: 'Es el primer paso para poder registrar animales.',
+        title: 'Primero crea una finca',
+        detail: 'Sin finca no se pueden registrar animales ni movimientos.',
         to: '/fincas',
         tone: 'yellow',
       })
@@ -100,8 +151,8 @@ function Dashboard() {
 
     if (data.total_fincas > 0 && data.total_animales === 0) {
       lista.push({
-        title: 'Registrar tu primer animal',
-        detail: 'Con animales registrados podrás controlar peso, vacunas y salud.',
+        title: 'Registra el primer animal',
+        detail: 'Después podrás anotar peso, vacunas, salud y ventas.',
         to: '/animales',
         tone: 'yellow',
       })
@@ -110,7 +161,7 @@ function Dashboard() {
     if (vacunasVencidas > 0) {
       lista.push({
         title: `${vacunasVencidas} vacuna(s) vencida(s)`,
-        detail: 'Revisa estas aplicaciones lo antes posible.',
+        detail: 'Conviene revisarlas hoy.',
         to: '/vacunas',
         tone: 'red',
       })
@@ -119,7 +170,7 @@ function Dashboard() {
     if (vacunasVencidas === 0 && vacunasProximas > 0) {
       lista.push({
         title: `${vacunasProximas} vacuna(s) próximas`,
-        detail: 'Hay aplicaciones programadas para los siguientes 15 días.',
+        detail: 'Hay aplicaciones para los siguientes 15 días.',
         to: '/vacunas',
         tone: 'yellow',
       })
@@ -127,16 +178,25 @@ function Dashboard() {
 
     if (animalesEnfermos > 0 || animalesTratamiento > 0) {
       lista.push({
-        title: 'Revisar animales con alerta de salud',
+        title: 'Revisar salud del ganado',
         detail: `${animalesEnfermos} enfermo(s), ${animalesTratamiento} en tratamiento.`,
-        to: '/animales',
+        to: '/sanidad',
+        tone: 'red',
+      })
+    }
+
+    if (alertasAltas > 0) {
+      lista.push({
+        title: `${alertasAltas} alerta(s) importantes`,
+        detail: 'Puede haber bajo stock, cuentas próximas o tareas críticas.',
+        to: '/alertas',
         tone: 'red',
       })
     }
 
     if (Number(data.finanzas.balance) < 0) {
       lista.push({
-        title: 'Revisar balance negativo',
+        title: 'Balance negativo',
         detail: 'Los gastos superan los ingresos registrados.',
         to: '/finanzas',
         tone: 'red',
@@ -153,12 +213,12 @@ function Dashboard() {
     }
 
     return lista
-  }, [data])
+  }, [data, alertas])
 
   if (loading) {
     return (
-      <Panel title="Dashboard">
-        <p className="text-sm text-slate-500">Cargando dashboard...</p>
+      <Panel title="Cargando inicio">
+        <p className="text-sm text-slate-500">Estamos revisando tus fincas, animales y alertas...</p>
       </Panel>
     )
   }
@@ -177,30 +237,31 @@ function Dashboard() {
   return (
     <div>
       <PageHeader
-        title="Dashboard"
-        description="Qué está pasando hoy en tu finca y qué conviene atender primero."
+        title="Qué hacer hoy"
+        description="Aquí ves lo más importante primero. Si no sabes por dónde empezar, revisa las tareas recomendadas."
       />
 
       {vacunasVencidas.length > 0 && <Alert type="error" message={`Atención: tienes ${vacunasVencidas.length} vacuna(s) vencida(s).`} />}
       {vacunasVencidas.length === 0 && vacunasProximas.length > 0 && <Alert type="warning" message={`Tienes ${vacunasProximas.length} vacuna(s) próximas en los siguientes 15 días.`} />}
 
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Total fincas" value={data.total_fincas} icon={<Building2 size={20} />} helper="Predios registrados" />
-        <StatCard title="Total animales" value={data.total_animales} icon={<Activity size={20} />} helper="Inventario activo" />
-        <StatCard title="Ingresos" value={`$${Number(data.finanzas.total_ingresos).toLocaleString()}`} icon={<Wallet size={20} />} helper="Ingresos acumulados" />
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <StatCard title="Fincas" value={data.total_fincas} icon={<Building2 size={20} />} helper="Predios guardados" />
+        <StatCard title="Animales" value={data.total_animales} icon={<Activity size={20} />} helper="Ganado registrado" />
+        <StatCard title="Ingresos" value={`$${Number(data.finanzas.total_ingresos).toLocaleString()}`} icon={<Wallet size={20} />} helper="Dinero que entró" />
         <StatCard title="Balance" value={`$${Number(data.finanzas.balance).toLocaleString()}`} icon={<BadgeDollarSign size={20} />} tone={Number(data.finanzas.balance) >= 0 ? 'green' : 'red'} helper="Ingresos menos gastos" />
+        <StatCard title="Alertas" value={alertas.length} icon={<Bell size={20} />} tone={alertas.length > 0 ? 'yellow' : 'green'} helper="Por revisar" />
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <Panel title="Tareas recomendadas" count={tareas.length}>
+      <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_1fr]">
+        <Panel title="Tareas recomendadas" count={tareas.length} helper="Presiona una tarea para ir directo a resolverla.">
           <div className="space-y-3">
             {tareas.map((tarea) => (
               <Link
                 key={tarea.title}
                 to={tarea.to}
-                className="flex items-start gap-3 rounded-lg border border-slate-200 p-4 transition hover:bg-slate-50"
+                className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-green-300 hover:bg-green-50"
               >
-                <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                <span className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
                   tarea.tone === 'red'
                     ? 'bg-red-50 text-red-600'
                     : tarea.tone === 'yellow'
@@ -208,39 +269,43 @@ function Dashboard() {
                       : 'bg-green-50 text-green-700'
                 }`}
                 >
-                  {tarea.tone === 'green' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+                  {tarea.tone === 'green' ? <CheckCircle2 size={19} /> : <AlertTriangle size={19} />}
                 </span>
                 <span>
                   <span className="block font-semibold text-slate-950">{tarea.title}</span>
-                  <span className="mt-1 block text-sm text-slate-500">{tarea.detail}</span>
+                  <span className="mt-1 block text-sm leading-6 text-slate-500">{tarea.detail}</span>
                 </span>
               </Link>
             ))}
           </div>
         </Panel>
 
-        <Panel title="Accesos rápidos">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <Link to="/fincas" className="rounded-lg border border-slate-200 p-4 hover:bg-slate-50">
-              <p className="font-semibold text-slate-900">Fincas</p>
-              <p className="mt-1 text-sm text-slate-500">Crear o editar predios.</p>
-            </Link>
-            <Link to="/animales" className="rounded-lg border border-slate-200 p-4 hover:bg-slate-50">
-              <p className="font-semibold text-slate-900">Animales</p>
-              <p className="mt-1 text-sm text-slate-500">Registrar, pesar o vacunar.</p>
-            </Link>
-            <Link to="/finanzas" className="rounded-lg border border-slate-200 p-4 hover:bg-slate-50">
-              <p className="font-semibold text-slate-900">Finanzas</p>
-              <p className="mt-1 text-sm text-slate-500">Gastos, ingresos y balance.</p>
-            </Link>
+        <Panel title="Botones rápidos" helper="Usa estos botones para las acciones más comunes.">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {actionLinks.map((action) => {
+              const Icon = action.icon
+              return (
+                <Link
+                  key={action.to}
+                  to={action.to}
+                  className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-green-300 hover:bg-green-50"
+                >
+                  <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-green-700">
+                    <Icon size={18} />
+                  </span>
+                  <p className="font-semibold text-slate-900">{action.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">{action.detail}</p>
+                </Link>
+              )
+            })}
           </div>
         </Panel>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Panel title="Estado de salud" count={data.animales_por_salud.length}>
+        <Panel title="Salud del ganado" count={data.animales_por_salud.length} helper="Resumen rápido para saber si hay animales enfermos o en tratamiento.">
           {data.animales_por_salud.length === 0 ? (
-            <EmptyState title="No hay animales registrados" />
+            <EmptyState title="No hay animales registrados" actionLabel="Registrar animal" onAction={() => navigate('/animales')} />
           ) : (
             <div className="space-y-3">
               {data.animales_por_salud.map((item) => (
@@ -258,9 +323,9 @@ function Dashboard() {
           )}
         </Panel>
 
-        <Panel title="Vacunas por atender" count={data.vacunas_proximas.length}>
+        <Panel title="Vacunas por atender" count={data.vacunas_proximas.length} helper="Muestra vencidas y próximas para no dejar pasar fechas importantes.">
           {data.vacunas_proximas.length === 0 ? (
-            <EmptyState title="No hay vacunas próximas" />
+            <EmptyState title="No hay vacunas próximas" actionLabel="Ir a vacunas" onAction={() => navigate('/vacunas')} />
           ) : (
             <div className="space-y-3">
               {data.vacunas_proximas.map((vacuna) => {
@@ -287,50 +352,24 @@ function Dashboard() {
           )}
         </Panel>
 
-        <Panel title="Últimos animales registrados" count={data.ultimos_animales.length} className="lg:col-span-2">
+        <Panel title="Últimos animales registrados" count={data.ultimos_animales.length} className="lg:col-span-2" helper="Los animales agregados más recientemente.">
           {data.ultimos_animales.length === 0 ? (
-            <EmptyState title="No hay animales registrados" />
+            <EmptyState title="No hay animales registrados" actionLabel="Registrar animal" onAction={() => navigate('/animales')} />
           ) : (
-            <>
-              <div className="grid gap-3 md:hidden">
-                {data.ultimos_animales.map((animal) => (
-                  <div key={animal.id_animal} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="font-semibold text-slate-950">{animal.nombre || animal.codigo}</p>
-                    <p className="mt-1 text-sm text-slate-500">{animal.nombre_finca} · {animal.peso_actual || 'N/A'} kg</p>
-                    <p className="mt-1 text-sm text-slate-500">{animal.raza || 'Raza no registrada'} · {animal.sexo}</p>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {data.ultimos_animales.map((animal) => (
+                <div key={animal.id_animal} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <p className="font-semibold text-slate-950">{animal.nombre || animal.codigo}</p>
+                  <p className="mt-1 text-sm text-slate-500">{animal.nombre_finca} · {animal.peso_actual || 'N/A'} kg</p>
+                  <p className="mt-1 text-sm text-slate-500">{animal.raza || 'Raza no registrada'} · {animal.sexo}</p>
+                  <div className="mt-3">
+                    <Badge variant={animal.estado_salud === 'ENFERMO' ? 'red' : animal.estado_salud === 'EN_TRATAMIENTO' ? 'yellow' : 'green'}>
+                      {animal.estado_salud}
+                    </Badge>
                   </div>
-                ))}
-              </div>
-
-              <div className="hidden overflow-x-auto rounded-lg border border-slate-200 md:block">
-                <table className="w-full min-w-[760px] text-left">
-                  <thead>
-                    <tr>
-                      <th>Código</th>
-                      <th>Nombre</th>
-                      <th>Raza</th>
-                      <th>Sexo</th>
-                      <th>Peso</th>
-                      <th>Estado</th>
-                      <th>Finca</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {data.ultimos_animales.map((animal) => (
-                      <tr key={animal.id_animal} className="hover:bg-slate-50">
-                        <td className="font-semibold text-slate-900">{animal.codigo}</td>
-                        <td className="text-slate-600">{animal.nombre || 'Sin nombre'}</td>
-                        <td className="text-slate-600">{animal.raza || 'No registrada'}</td>
-                        <td className="text-slate-600">{animal.sexo}</td>
-                        <td><Badge variant="green">{animal.peso_actual || 'N/A'} kg</Badge></td>
-                        <td className="text-slate-600">{animal.estado_salud}</td>
-                        <td className="text-slate-600">{animal.nombre_finca}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
+                </div>
+              ))}
+            </div>
           )}
         </Panel>
       </div>

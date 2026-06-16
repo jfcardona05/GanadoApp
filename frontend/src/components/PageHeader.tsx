@@ -8,7 +8,7 @@ interface PageHeaderProps {
 
 function PageHeader({ title, description, action }: PageHeaderProps) {
   return (
-    <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-6 md:flex-row md:items-end md:justify-between">
+    <div className="mb-6 flex flex-col gap-4 rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-sm md:flex-row md:items-center md:justify-between">
       <div className="max-w-3xl">
         <h1 className="text-2xl font-bold tracking-normal text-slate-950 md:text-3xl">
           {title}

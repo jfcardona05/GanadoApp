@@ -39,9 +39,9 @@ const obtenerResumenDashboard = async (req, res) => {
        INNER JOIN fincas f ON a.id_finca = f.id_finca
        WHERE f.id_usuario = ?
        AND rv.proxima_fecha IS NOT NULL
-       AND rv.proxima_fecha >= CURDATE()
+       AND rv.proxima_fecha <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
        ORDER BY rv.proxima_fecha ASC
-       LIMIT 5`,
+       LIMIT 10`,
       [id_usuario]
     );
 

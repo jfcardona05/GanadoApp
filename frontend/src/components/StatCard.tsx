@@ -18,13 +18,13 @@ function StatCard({ title, value, icon, tone = 'green', helper }: StatCardProps)
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-green-200">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-slate-500">
+          <p className="text-sm font-semibold text-slate-500">
             {title}
           </p>
-          <div className="mt-2 text-2xl font-bold text-slate-950">
+          <div className="mt-2 text-3xl font-bold text-slate-950">
             {value}
           </div>
         </div>

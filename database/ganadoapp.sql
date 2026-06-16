@@ -1,434 +1,576 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
+-- GanadoApp - Migracion funcional avanzada
+-- Fecha: 2026-06-15
+-- Motor objetivo: MySQL/MariaDB
 --
--- Servidor: 127.0.0.1
--- Tiempo de generación: 13-06-2026 a las 00:08:58
--- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.2.12
+-- IMPORTANTE:
+-- 1. Probar primero en local con XAMPP/phpMyAdmin.
+-- 2. Hacer backup antes de ejecutar en Railway.
+-- 3. Ejecutar una sola vez. Este archivo agrega tablas/columnas para una gestion ganadera completa.
 
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
+SET FOREIGN_KEY_CHECKS = 0;
 
+-- =========================================================
+-- 1. AMPLIACION DE ANIMALES
+-- =========================================================
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
+ALTER TABLE animales
+  ADD COLUMN chapeta VARCHAR(50) NULL AFTER codigo,
+  ADD COLUMN codigo_alterno VARCHAR(50) NULL AFTER chapeta,
+  ADD COLUMN color VARCHAR(80) NULL AFTER raza,
+  ADD COLUMN procedencia ENUM('NACIDO_EN_FINCA','COMPRADO','TRASLADADO','OTRO') DEFAULT 'NACIDO_EN_FINCA' AFTER color,
+  ADD COLUMN id_padre INT NULL AFTER procedencia,
+  ADD COLUMN id_madre INT NULL AFTER id_padre,
+  ADD COLUMN fecha_ingreso DATE NULL AFTER fecha_nacimiento,
+  ADD COLUMN estado_productivo ENUM('CRIA','LEVANTE','CEBA','REPRODUCTOR','VACA_PRODUCCION','SECA','DESCARTE','OTRO') DEFAULT 'LEVANTE' AFTER peso_actual,
+  ADD COLUMN estado_comercial ENUM('ACTIVO','EN_VENTA','VENDIDO','MUERTO','DESCARTADO') DEFAULT 'ACTIVO' AFTER estado_salud,
+  ADD COLUMN valor_estimado DECIMAL(12,2) NULL AFTER estado_comercial,
+  ADD COLUMN precio_compra DECIMAL(12,2) NULL AFTER valor_estimado,
+  ADD COLUMN fecha_salida DATE NULL AFTER precio_compra,
+  ADD COLUMN motivo_salida VARCHAR(255) NULL AFTER fecha_salida;
 
---
--- Base de datos: `ganadoapp_db`
---
+ALTER TABLE animales
+  ADD KEY idx_animales_chapeta (chapeta),
+  ADD KEY idx_animales_estado_productivo (estado_productivo),
+  ADD KEY idx_animales_estado_comercial (estado_comercial),
+  ADD KEY fk_animales_padre (id_padre),
+  ADD KEY fk_animales_madre (id_madre),
+  ADD CONSTRAINT fk_animales_padre FOREIGN KEY (id_padre) REFERENCES animales(id_animal) ON DELETE SET NULL,
+  ADD CONSTRAINT fk_animales_madre FOREIGN KEY (id_madre) REFERENCES animales(id_animal) ON DELETE SET NULL;
 
--- --------------------------------------------------------
+-- =========================================================
+-- 2. POTREROS Y ROTACION
+-- =========================================================
 
---
--- Estructura de tabla para la tabla `animales`
---
-
-CREATE TABLE `animales` (
-  `id_animal` int(11) NOT NULL,
-  `id_finca` int(11) NOT NULL,
-  `codigo` varchar(50) NOT NULL,
-  `nombre` varchar(100) DEFAULT NULL,
-  `foto` varchar(255) DEFAULT NULL,
-  `raza` varchar(100) DEFAULT NULL,
-  `sexo` enum('MACHO','HEMBRA') NOT NULL,
-  `fecha_nacimiento` date DEFAULT NULL,
-  `peso_actual` decimal(10,2) DEFAULT NULL,
-  `estado_salud` enum('SANO','ENFERMO','EN_TRATAMIENTO','VENDIDO','MUERTO') DEFAULT 'SANO',
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp()
+CREATE TABLE potreros (
+  id_potrero INT NOT NULL AUTO_INCREMENT,
+  id_finca INT NOT NULL,
+  nombre VARCHAR(100) NOT NULL,
+  area_hectareas DECIMAL(10,2) NULL,
+  tipo_pasto VARCHAR(100) NULL,
+  capacidad_animales INT NULL,
+  estado ENUM('DISPONIBLE','OCUPADO','DESCANSO','MANTENIMIENTO') DEFAULT 'DISPONIBLE',
+  agua_disponible TINYINT(1) DEFAULT 0,
+  sombra_disponible TINYINT(1) DEFAULT 0,
+  observaciones TEXT NULL,
+  fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id_potrero),
+  KEY idx_potreros_finca (id_finca),
+  KEY idx_potreros_estado (estado),
+  CONSTRAINT fk_potreros_finca FOREIGN KEY (id_finca) REFERENCES fincas(id_finca) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `animales`
---
-
-INSERT INTO `animales` (`id_animal`, `id_finca`, `codigo`, `nombre`, `foto`, `raza`, `sexo`, `fecha_nacimiento`, `peso_actual`, `estado_salud`, `fecha_registro`) VALUES
-(4, 3, 'A001', 'x1', NULL, 'Angus', 'MACHO', '2026-06-11', 450.00, 'SANO', '2026-06-12 03:55:49'),
-(5, 4, 'A001', 'Toro', NULL, 'Rojo', 'MACHO', '2026-06-11', 429.00, 'SANO', '2026-06-12 04:30:06'),
-(8, 2, 'A001', 'Toro negro', NULL, 'brahman', 'MACHO', '2026-06-12', 489.00, 'SANO', '2026-06-12 05:37:55'),
-(9, 2, 'A002', 'Toro Verde', NULL, 'Brahman', 'MACHO', '2026-06-12', 490.00, 'SANO', '2026-06-12 20:10:21');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `categorias_financieras`
---
-
-CREATE TABLE `categorias_financieras` (
-  `id_categoria` int(11) NOT NULL,
-  `id_usuario` int(11) NOT NULL,
-  `nombre` varchar(100) NOT NULL,
-  `tipo` enum('GASTO','INGRESO') NOT NULL,
-  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp()
+CREATE TABLE movimientos_potrero (
+  id_movimiento_potrero INT NOT NULL AUTO_INCREMENT,
+  id_animal INT NOT NULL,
+  id_potrero_origen INT NULL,
+  id_potrero_destino INT NOT NULL,
+  fecha_movimiento DATE NOT NULL,
+  motivo VARCHAR(255) NULL,
+  observaciones TEXT NULL,
+  fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id_movimiento_potrero),
+  KEY idx_mov_potrero_animal (id_animal),
+  KEY idx_mov_potrero_destino (id_potrero_destino),
+  CONSTRAINT fk_mov_potrero_animal FOREIGN KEY (id_animal) REFERENCES animales(id_animal) ON DELETE CASCADE,
+  CONSTRAINT fk_mov_potrero_origen FOREIGN KEY (id_potrero_origen) REFERENCES potreros(id_potrero) ON DELETE SET NULL,
+  CONSTRAINT fk_mov_potrero_destino FOREIGN KEY (id_potrero_destino) REFERENCES potreros(id_potrero) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `categorias_financieras`
---
+-- =========================================================
+-- 3. LINEA DE TIEMPO / TRAZABILIDAD
+-- =========================================================
 
-INSERT INTO `categorias_financieras` (`id_categoria`, `id_usuario`, `nombre`, `tipo`, `fecha_creacion`) VALUES
-(1, 1, 'Concentrado', 'GASTO', '2026-06-12 04:48:04'),
-(2, 1, 'Venta de leche', 'INGRESO', '2026-06-12 04:48:21'),
-(3, 2, 'Alimento', 'GASTO', '2026-06-12 04:55:09'),
-(4, 2, 'Medicamento', 'GASTO', '2026-06-12 04:55:22'),
-(5, 2, 'Leche', 'INGRESO', '2026-06-12 04:55:52'),
-(6, 2, 'Carne', 'INGRESO', '2026-06-12 04:55:56');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `fincas`
---
-
-CREATE TABLE `fincas` (
-  `id_finca` int(11) NOT NULL,
-  `id_usuario` int(11) NOT NULL,
-  `nombre` varchar(100) NOT NULL,
-  `ubicacion` varchar(150) DEFAULT NULL,
-  `hectareas` decimal(10,2) DEFAULT NULL,
-  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp()
+CREATE TABLE eventos_animales (
+  id_evento INT NOT NULL AUTO_INCREMENT,
+  id_animal INT NOT NULL,
+  id_usuario INT NOT NULL,
+  tipo_evento ENUM(
+    'NACIMIENTO','COMPRA','VENTA','MUERTE','PESO','VACUNA','TRATAMIENTO',
+    'REPRODUCCION','CAMBIO_POTRERO','PRODUCCION','FINANZA','OBSERVACION'
+  ) NOT NULL,
+  titulo VARCHAR(150) NOT NULL,
+  descripcion TEXT NULL,
+  fecha_evento DATE NOT NULL,
+  modulo_origen VARCHAR(80) NULL,
+  id_referencia INT NULL,
+  fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id_evento),
+  KEY idx_eventos_animal (id_animal),
+  KEY idx_eventos_usuario (id_usuario),
+  KEY idx_eventos_tipo_fecha (tipo_evento, fecha_evento),
+  CONSTRAINT fk_eventos_animal FOREIGN KEY (id_animal) REFERENCES animales(id_animal) ON DELETE CASCADE,
+  CONSTRAINT fk_eventos_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `fincas`
---
+-- =========================================================
+-- 4. REPRODUCCION
+-- =========================================================
 
-INSERT INTO `fincas` (`id_finca`, `id_usuario`, `nombre`, `ubicacion`, `hectareas`, `fecha_creacion`) VALUES
-(2, 1, 'Finca Don Juan', 'Puerto lopez, Meta', 50.00, '2026-06-11 04:44:10'),
-(3, 3, 'Finca Don Pérez', 'Villavicencio, Meta', 28.00, '2026-06-12 03:53:17'),
-(4, 2, 'Finca Cardona', 'Villavicencio, Meta', 60.00, '2026-06-12 04:29:31');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `gastos`
---
-
-CREATE TABLE `gastos` (
-  `id_gasto` int(11) NOT NULL,
-  `id_finca` int(11) NOT NULL,
-  `id_categoria` int(11) DEFAULT NULL,
-  `categoria` varchar(100) DEFAULT NULL,
-  `descripcion` varchar(255) DEFAULT NULL,
-  `monto` decimal(12,2) NOT NULL,
-  `fecha` date NOT NULL
+CREATE TABLE servicios_reproductivos (
+  id_servicio INT NOT NULL AUTO_INCREMENT,
+  id_hembra INT NOT NULL,
+  id_macho INT NULL,
+  id_usuario INT NOT NULL,
+  tipo ENUM('CELO','MONTA_NATURAL','INSEMINACION','TRANSFERENCIA_EMBRIONARIA') NOT NULL,
+  fecha_servicio DATE NOT NULL,
+  pajilla_codigo VARCHAR(100) NULL,
+  responsable VARCHAR(120) NULL,
+  resultado ENUM('PENDIENTE','PRENADA','NO_PRENADA','REPETICION_CELO','ABORTO') DEFAULT 'PENDIENTE',
+  observaciones TEXT NULL,
+  fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id_servicio),
+  KEY idx_servicios_hembra (id_hembra),
+  KEY idx_servicios_usuario (id_usuario),
+  KEY idx_servicios_fecha (fecha_servicio),
+  CONSTRAINT fk_servicios_hembra FOREIGN KEY (id_hembra) REFERENCES animales(id_animal) ON DELETE CASCADE,
+  CONSTRAINT fk_servicios_macho FOREIGN KEY (id_macho) REFERENCES animales(id_animal) ON DELETE SET NULL,
+  CONSTRAINT fk_servicios_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `gastos`
---
-
-INSERT INTO `gastos` (`id_gasto`, `id_finca`, `id_categoria`, `categoria`, `descripcion`, `monto`, `fecha`) VALUES
-(1, 2, NULL, 'ALIMENTACION', 'Compra de concentrado', 250000.00, '2026-06-11'),
-(2, 2, 1, 'Concentrado', 'Compra de concentrado para el ganado', 250000.00, '2026-06-11'),
-(3, 4, 3, 'Alimento', 'Vacas', 1000000.00, '2026-06-11');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `ingresos`
---
-
-CREATE TABLE `ingresos` (
-  `id_ingreso` int(11) NOT NULL,
-  `id_finca` int(11) NOT NULL,
-  `id_categoria` int(11) DEFAULT NULL,
-  `categoria` varchar(100) DEFAULT NULL,
-  `descripcion` varchar(255) DEFAULT NULL,
-  `monto` decimal(12,2) NOT NULL,
-  `fecha` date NOT NULL
+CREATE TABLE diagnosticos_prenez (
+  id_diagnostico INT NOT NULL AUTO_INCREMENT,
+  id_servicio INT NOT NULL,
+  id_hembra INT NOT NULL,
+  fecha_diagnostico DATE NOT NULL,
+  resultado ENUM('PRENADA','VACIA','DUDOSA') NOT NULL,
+  metodo VARCHAR(100) NULL,
+  fecha_probable_parto DATE NULL,
+  veterinario VARCHAR(120) NULL,
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_diagnostico),
+  KEY idx_prenez_servicio (id_servicio),
+  KEY idx_prenez_hembra (id_hembra),
+  CONSTRAINT fk_prenez_servicio FOREIGN KEY (id_servicio) REFERENCES servicios_reproductivos(id_servicio) ON DELETE CASCADE,
+  CONSTRAINT fk_prenez_hembra FOREIGN KEY (id_hembra) REFERENCES animales(id_animal) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `ingresos`
---
-
-INSERT INTO `ingresos` (`id_ingreso`, `id_finca`, `id_categoria`, `categoria`, `descripcion`, `monto`, `fecha`) VALUES
-(1, 2, NULL, 'VENTA_GANADO', 'Venta de un novillo', 3200000.00, '2026-06-11'),
-(3, 2, 2, 'Venta de leche', 'Venta de leche semanal', 500000.00, '2026-06-11'),
-(4, 4, 6, 'Carne', 'x', 250000.00, '2026-06-11'),
-(5, 4, 5, 'Leche', 'x', 1500000.00, '2026-06-11');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `registros_peso`
---
-
-CREATE TABLE `registros_peso` (
-  `id_peso` int(11) NOT NULL,
-  `id_animal` int(11) NOT NULL,
-  `peso` decimal(10,2) NOT NULL,
-  `fecha_registro` date NOT NULL,
-  `observaciones` text DEFAULT NULL
+CREATE TABLE partos (
+  id_parto INT NOT NULL AUTO_INCREMENT,
+  id_madre INT NOT NULL,
+  id_servicio INT NULL,
+  id_cria INT NULL,
+  fecha_parto DATE NOT NULL,
+  tipo_parto ENUM('NORMAL','ASISTIDO','CESAREA','ABORTO') DEFAULT 'NORMAL',
+  sexo_cria ENUM('MACHO','HEMBRA') NULL,
+  peso_cria DECIMAL(10,2) NULL,
+  estado_cria ENUM('VIVA','MUERTA','DEBIL') DEFAULT 'VIVA',
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_parto),
+  KEY idx_partos_madre (id_madre),
+  KEY idx_partos_cria (id_cria),
+  CONSTRAINT fk_partos_madre FOREIGN KEY (id_madre) REFERENCES animales(id_animal) ON DELETE CASCADE,
+  CONSTRAINT fk_partos_servicio FOREIGN KEY (id_servicio) REFERENCES servicios_reproductivos(id_servicio) ON DELETE SET NULL,
+  CONSTRAINT fk_partos_cria FOREIGN KEY (id_cria) REFERENCES animales(id_animal) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `registros_peso`
---
+-- =========================================================
+-- 5. SANIDAD AVANZADA
+-- =========================================================
 
-INSERT INTO `registros_peso` (`id_peso`, `id_animal`, `peso`, `fecha_registro`, `observaciones`) VALUES
-(3, 8, 489.00, '2026-06-12', 'Registro inicial al crear el animal'),
-(4, 9, 490.00, '2026-06-12', 'Registro inicial al crear el animal');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `registros_vacunacion`
---
-
-CREATE TABLE `registros_vacunacion` (
-  `id_registro` int(11) NOT NULL,
-  `id_animal` int(11) NOT NULL,
-  `id_vacuna` int(11) NOT NULL,
-  `fecha_aplicacion` date NOT NULL,
-  `proxima_fecha` date DEFAULT NULL,
-  `veterinario` varchar(100) DEFAULT NULL,
-  `observaciones` text DEFAULT NULL
+CREATE TABLE enfermedades (
+  id_enfermedad INT NOT NULL AUTO_INCREMENT,
+  id_usuario INT NOT NULL,
+  nombre VARCHAR(120) NOT NULL,
+  descripcion TEXT NULL,
+  activa TINYINT(1) DEFAULT 1,
+  PRIMARY KEY (id_enfermedad),
+  KEY idx_enfermedades_usuario (id_usuario),
+  CONSTRAINT fk_enfermedades_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `registros_vacunacion`
---
-
-INSERT INTO `registros_vacunacion` (`id_registro`, `id_animal`, `id_vacuna`, `fecha_aplicacion`, `proxima_fecha`, `veterinario`, `observaciones`) VALUES
-(5, 5, 6, '2026-06-11', '2026-10-09', 'Dr. Andres', 'nignuan');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `usuarios`
---
-
-CREATE TABLE `usuarios` (
-  `id_usuario` int(11) NOT NULL,
-  `nombre` varchar(100) NOT NULL,
-  `correo` varchar(150) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `rol` enum('ADMIN','GANADERO') DEFAULT 'GANADERO',
-  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp()
+CREATE TABLE medicamentos (
+  id_medicamento INT NOT NULL AUTO_INCREMENT,
+  id_usuario INT NOT NULL,
+  nombre VARCHAR(120) NOT NULL,
+  principio_activo VARCHAR(120) NULL,
+  unidad_medida VARCHAR(50) NULL,
+  periodo_retiro_leche_dias INT DEFAULT 0,
+  periodo_retiro_carne_dias INT DEFAULT 0,
+  observaciones TEXT NULL,
+  activo TINYINT(1) DEFAULT 1,
+  PRIMARY KEY (id_medicamento),
+  KEY idx_medicamentos_usuario (id_usuario),
+  CONSTRAINT fk_medicamentos_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `usuarios`
---
-
-INSERT INTO `usuarios` (`id_usuario`, `nombre`, `correo`, `password`, `rol`, `fecha_creacion`) VALUES
-(1, 'Juan', 'juan@test.com', '$2b$10$3MKKimsoO0zlXLxVNRvdRuQCCZHcfBhbC0Tu39WYSi824ZvcEGCYi', 'GANADERO', '2026-06-11 04:24:53'),
-(2, 'Juan Cardona', 'cardona@test.com', '$2b$10$kzYHWclg0aFnsAXFD2Vc7Okvy7TIG.K5iSasla7f508xIQFyECFsK', 'GANADERO', '2026-06-11 05:53:09'),
-(3, 'Juan Perez', 'perez@gmail.com', '$2b$10$WFNuM0QjxzYr1IBYly9KOO1rlfKOzxLsLSeKg4NEmDSIt6z1jPure', 'GANADERO', '2026-06-12 03:52:20');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `vacunas`
---
-
-CREATE TABLE `vacunas` (
-  `id_vacuna` int(11) NOT NULL,
-  `id_usuario` int(11) DEFAULT NULL,
-  `nombre` varchar(100) NOT NULL,
-  `descripcion` text DEFAULT NULL,
-  `frecuencia_dias` int(11) DEFAULT NULL,
-  `obligatoria` tinyint(1) DEFAULT 0
+CREATE TABLE tratamientos (
+  id_tratamiento INT NOT NULL AUTO_INCREMENT,
+  id_animal INT NOT NULL,
+  id_enfermedad INT NULL,
+  fecha_inicio DATE NOT NULL,
+  fecha_fin DATE NULL,
+  diagnostico VARCHAR(255) NULL,
+  estado ENUM('ACTIVO','FINALIZADO','SUSPENDIDO') DEFAULT 'ACTIVO',
+  veterinario VARCHAR(120) NULL,
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_tratamiento),
+  KEY idx_tratamientos_animal (id_animal),
+  KEY idx_tratamientos_estado (estado),
+  CONSTRAINT fk_tratamientos_animal FOREIGN KEY (id_animal) REFERENCES animales(id_animal) ON DELETE CASCADE,
+  CONSTRAINT fk_tratamientos_enfermedad FOREIGN KEY (id_enfermedad) REFERENCES enfermedades(id_enfermedad) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `vacunas`
---
+CREATE TABLE tratamiento_medicamentos (
+  id_tratamiento_medicamento INT NOT NULL AUTO_INCREMENT,
+  id_tratamiento INT NOT NULL,
+  id_medicamento INT NOT NULL,
+  dosis VARCHAR(100) NULL,
+  frecuencia VARCHAR(100) NULL,
+  via_aplicacion VARCHAR(80) NULL,
+  fecha_inicio DATE NOT NULL,
+  fecha_fin DATE NULL,
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_tratamiento_medicamento),
+  KEY idx_tm_tratamiento (id_tratamiento),
+  KEY idx_tm_medicamento (id_medicamento),
+  CONSTRAINT fk_tm_tratamiento FOREIGN KEY (id_tratamiento) REFERENCES tratamientos(id_tratamiento) ON DELETE CASCADE,
+  CONSTRAINT fk_tm_medicamento FOREIGN KEY (id_medicamento) REFERENCES medicamentos(id_medicamento) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `vacunas` (`id_vacuna`, `id_usuario`, `nombre`, `descripcion`, `frecuencia_dias`, `obligatoria`) VALUES
-(5, 3, 'XXX', 'plagas', 120, 1),
-(6, 2, 'YYY', 'LARVAS', 120, 1),
-(7, 1, 'Vacuna X', 'Anti plagas', 150, 1);
+CREATE TABLE desparasitaciones (
+  id_desparasitacion INT NOT NULL AUTO_INCREMENT,
+  id_animal INT NOT NULL,
+  id_medicamento INT NULL,
+  fecha_aplicacion DATE NOT NULL,
+  proxima_fecha DATE NULL,
+  producto VARCHAR(120) NULL,
+  dosis VARCHAR(100) NULL,
+  responsable VARCHAR(120) NULL,
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_desparasitacion),
+  KEY idx_desparas_animal (id_animal),
+  CONSTRAINT fk_desparas_animal FOREIGN KEY (id_animal) REFERENCES animales(id_animal) ON DELETE CASCADE,
+  CONSTRAINT fk_desparas_medicamento FOREIGN KEY (id_medicamento) REFERENCES medicamentos(id_medicamento) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Índices para tablas volcadas
---
+ALTER TABLE registros_vacunacion
+  ADD COLUMN lote_vacuna VARCHAR(100) NULL AFTER id_vacuna,
+  ADD COLUMN responsable VARCHAR(120) NULL AFTER veterinario,
+  ADD COLUMN periodo_retiro_leche_dias INT DEFAULT 0 AFTER responsable,
+  ADD COLUMN periodo_retiro_carne_dias INT DEFAULT 0 AFTER periodo_retiro_leche_dias;
 
---
--- Indices de la tabla `animales`
---
-ALTER TABLE `animales`
-  ADD PRIMARY KEY (`id_animal`),
-  ADD KEY `id_finca` (`id_finca`);
+-- =========================================================
+-- 6. PESO / DESARROLLO
+-- =========================================================
 
---
--- Indices de la tabla `categorias_financieras`
---
-ALTER TABLE `categorias_financieras`
-  ADD PRIMARY KEY (`id_categoria`),
-  ADD KEY `id_usuario` (`id_usuario`);
+ALTER TABLE registros_peso
+  ADD COLUMN tipo_pesaje ENUM('INICIAL','CONTROL','VENTA','COMPRA','OTRO') DEFAULT 'CONTROL' AFTER fecha_registro,
+  ADD COLUMN condicion_corporal DECIMAL(3,1) NULL AFTER peso,
+  ADD COLUMN responsable VARCHAR(120) NULL AFTER observaciones;
 
---
--- Indices de la tabla `fincas`
---
-ALTER TABLE `fincas`
-  ADD PRIMARY KEY (`id_finca`),
-  ADD KEY `id_usuario` (`id_usuario`);
+-- =========================================================
+-- 7. PRODUCCION
+-- =========================================================
 
---
--- Indices de la tabla `gastos`
---
-ALTER TABLE `gastos`
-  ADD PRIMARY KEY (`id_gasto`),
-  ADD KEY `id_finca` (`id_finca`),
-  ADD KEY `fk_gastos_categoria` (`id_categoria`);
+CREATE TABLE produccion_leche (
+  id_produccion_leche INT NOT NULL AUTO_INCREMENT,
+  id_animal INT NULL,
+  id_finca INT NOT NULL,
+  fecha DATE NOT NULL,
+  turno ENUM('MANANA','TARDE','NOCHE','TOTAL_DIA') DEFAULT 'TOTAL_DIA',
+  litros DECIMAL(10,2) NOT NULL,
+  destino ENUM('VENTA','CONSUMO_INTERNO','CRIA','DESCARTE','OTRO') DEFAULT 'VENTA',
+  observaciones TEXT NULL,
+  fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id_produccion_leche),
+  KEY idx_leche_animal (id_animal),
+  KEY idx_leche_finca_fecha (id_finca, fecha),
+  CONSTRAINT fk_leche_animal FOREIGN KEY (id_animal) REFERENCES animales(id_animal) ON DELETE SET NULL,
+  CONSTRAINT fk_leche_finca FOREIGN KEY (id_finca) REFERENCES fincas(id_finca) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Indices de la tabla `ingresos`
---
-ALTER TABLE `ingresos`
-  ADD PRIMARY KEY (`id_ingreso`),
-  ADD KEY `id_finca` (`id_finca`),
-  ADD KEY `fk_ingresos_categoria` (`id_categoria`);
+CREATE TABLE lotes_ceba (
+  id_lote_ceba INT NOT NULL AUTO_INCREMENT,
+  id_finca INT NOT NULL,
+  nombre VARCHAR(120) NOT NULL,
+  fecha_inicio DATE NOT NULL,
+  fecha_fin DATE NULL,
+  estado ENUM('ACTIVO','FINALIZADO','CANCELADO') DEFAULT 'ACTIVO',
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_lote_ceba),
+  KEY idx_lotes_ceba_finca (id_finca),
+  CONSTRAINT fk_lotes_ceba_finca FOREIGN KEY (id_finca) REFERENCES fincas(id_finca) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Indices de la tabla `registros_peso`
---
-ALTER TABLE `registros_peso`
-  ADD PRIMARY KEY (`id_peso`),
-  ADD KEY `id_animal` (`id_animal`);
+CREATE TABLE lote_ceba_animales (
+  id_lote_ceba_animal INT NOT NULL AUTO_INCREMENT,
+  id_lote_ceba INT NOT NULL,
+  id_animal INT NOT NULL,
+  fecha_ingreso DATE NOT NULL,
+  fecha_salida DATE NULL,
+  PRIMARY KEY (id_lote_ceba_animal),
+  UNIQUE KEY uq_lote_animal (id_lote_ceba, id_animal),
+  CONSTRAINT fk_lote_ceba_animal_lote FOREIGN KEY (id_lote_ceba) REFERENCES lotes_ceba(id_lote_ceba) ON DELETE CASCADE,
+  CONSTRAINT fk_lote_ceba_animal_animal FOREIGN KEY (id_animal) REFERENCES animales(id_animal) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Indices de la tabla `registros_vacunacion`
---
-ALTER TABLE `registros_vacunacion`
-  ADD PRIMARY KEY (`id_registro`),
-  ADD KEY `id_animal` (`id_animal`),
-  ADD KEY `id_vacuna` (`id_vacuna`);
+-- =========================================================
+-- 8. CLIENTES, PROVEEDORES, COMPRAS Y VENTAS
+-- =========================================================
 
---
--- Indices de la tabla `usuarios`
---
-ALTER TABLE `usuarios`
-  ADD PRIMARY KEY (`id_usuario`),
-  ADD UNIQUE KEY `correo` (`correo`);
+CREATE TABLE proveedores (
+  id_proveedor INT NOT NULL AUTO_INCREMENT,
+  id_usuario INT NOT NULL,
+  nombre VARCHAR(150) NOT NULL,
+  telefono VARCHAR(50) NULL,
+  correo VARCHAR(150) NULL,
+  direccion VARCHAR(255) NULL,
+  tipo VARCHAR(80) NULL,
+  observaciones TEXT NULL,
+  activo TINYINT(1) DEFAULT 1,
+  PRIMARY KEY (id_proveedor),
+  KEY idx_proveedores_usuario (id_usuario),
+  CONSTRAINT fk_proveedores_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Indices de la tabla `vacunas`
---
-ALTER TABLE `vacunas`
-  ADD PRIMARY KEY (`id_vacuna`),
-  ADD KEY `fk_vacunas_usuarios` (`id_usuario`);
+CREATE TABLE clientes (
+  id_cliente INT NOT NULL AUTO_INCREMENT,
+  id_usuario INT NOT NULL,
+  nombre VARCHAR(150) NOT NULL,
+  telefono VARCHAR(50) NULL,
+  correo VARCHAR(150) NULL,
+  direccion VARCHAR(255) NULL,
+  tipo VARCHAR(80) NULL,
+  observaciones TEXT NULL,
+  activo TINYINT(1) DEFAULT 1,
+  PRIMARY KEY (id_cliente),
+  KEY idx_clientes_usuario (id_usuario),
+  CONSTRAINT fk_clientes_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- AUTO_INCREMENT de las tablas volcadas
---
+CREATE TABLE compras_animales (
+  id_compra_animal INT NOT NULL AUTO_INCREMENT,
+  id_usuario INT NOT NULL,
+  id_finca INT NOT NULL,
+  id_animal INT NULL,
+  id_proveedor INT NULL,
+  fecha_compra DATE NOT NULL,
+  precio DECIMAL(12,2) NOT NULL,
+  peso_compra DECIMAL(10,2) NULL,
+  descripcion VARCHAR(255) NULL,
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_compra_animal),
+  KEY idx_compras_animales_usuario (id_usuario),
+  KEY idx_compras_animales_finca (id_finca),
+  CONSTRAINT fk_compras_animales_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+  CONSTRAINT fk_compras_animales_finca FOREIGN KEY (id_finca) REFERENCES fincas(id_finca) ON DELETE CASCADE,
+  CONSTRAINT fk_compras_animales_animal FOREIGN KEY (id_animal) REFERENCES animales(id_animal) ON DELETE SET NULL,
+  CONSTRAINT fk_compras_animales_proveedor FOREIGN KEY (id_proveedor) REFERENCES proveedores(id_proveedor) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- AUTO_INCREMENT de la tabla `animales`
---
-ALTER TABLE `animales`
-  MODIFY `id_animal` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+CREATE TABLE ventas_animales (
+  id_venta_animal INT NOT NULL AUTO_INCREMENT,
+  id_usuario INT NOT NULL,
+  id_finca INT NOT NULL,
+  id_animal INT NULL,
+  id_cliente INT NULL,
+  fecha_venta DATE NOT NULL,
+  precio DECIMAL(12,2) NOT NULL,
+  peso_venta DECIMAL(10,2) NULL,
+  utilidad_estimada DECIMAL(12,2) NULL,
+  descripcion VARCHAR(255) NULL,
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_venta_animal),
+  KEY idx_ventas_animales_usuario (id_usuario),
+  KEY idx_ventas_animales_finca (id_finca),
+  CONSTRAINT fk_ventas_animales_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+  CONSTRAINT fk_ventas_animales_finca FOREIGN KEY (id_finca) REFERENCES fincas(id_finca) ON DELETE CASCADE,
+  CONSTRAINT fk_ventas_animales_animal FOREIGN KEY (id_animal) REFERENCES animales(id_animal) ON DELETE SET NULL,
+  CONSTRAINT fk_ventas_animales_cliente FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- AUTO_INCREMENT de la tabla `categorias_financieras`
---
-ALTER TABLE `categorias_financieras`
-  MODIFY `id_categoria` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+CREATE TABLE ventas_leche (
+  id_venta_leche INT NOT NULL AUTO_INCREMENT,
+  id_usuario INT NOT NULL,
+  id_finca INT NOT NULL,
+  id_cliente INT NULL,
+  fecha_venta DATE NOT NULL,
+  litros DECIMAL(10,2) NOT NULL,
+  precio_litro DECIMAL(12,2) NOT NULL,
+  total DECIMAL(12,2) NOT NULL,
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_venta_leche),
+  KEY idx_ventas_leche_usuario (id_usuario),
+  KEY idx_ventas_leche_finca_fecha (id_finca, fecha_venta),
+  CONSTRAINT fk_ventas_leche_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+  CONSTRAINT fk_ventas_leche_finca FOREIGN KEY (id_finca) REFERENCES fincas(id_finca) ON DELETE CASCADE,
+  CONSTRAINT fk_ventas_leche_cliente FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- AUTO_INCREMENT de la tabla `fincas`
---
-ALTER TABLE `fincas`
-  MODIFY `id_finca` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+-- =========================================================
+-- 9. INVENTARIO DE INSUMOS / STOCK
+-- =========================================================
 
---
--- AUTO_INCREMENT de la tabla `gastos`
---
-ALTER TABLE `gastos`
-  MODIFY `id_gasto` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+CREATE TABLE insumos (
+  id_insumo INT NOT NULL AUTO_INCREMENT,
+  id_usuario INT NOT NULL,
+  nombre VARCHAR(150) NOT NULL,
+  tipo ENUM('ALIMENTO','MEDICAMENTO','VACUNA','SUPLEMENTO','HERRAMIENTA','OTRO') NOT NULL,
+  unidad_medida VARCHAR(50) NOT NULL,
+  stock_minimo DECIMAL(12,2) DEFAULT 0,
+  activo TINYINT(1) DEFAULT 1,
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_insumo),
+  KEY idx_insumos_usuario_tipo (id_usuario, tipo),
+  CONSTRAINT fk_insumos_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- AUTO_INCREMENT de la tabla `ingresos`
---
-ALTER TABLE `ingresos`
-  MODIFY `id_ingreso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+CREATE TABLE inventario_insumos (
+  id_inventario INT NOT NULL AUTO_INCREMENT,
+  id_insumo INT NOT NULL,
+  id_finca INT NOT NULL,
+  cantidad_actual DECIMAL(12,2) NOT NULL DEFAULT 0,
+  costo_promedio DECIMAL(12,2) NULL,
+  fecha_vencimiento DATE NULL,
+  lote VARCHAR(100) NULL,
+  PRIMARY KEY (id_inventario),
+  UNIQUE KEY uq_inventario_insumo_finca_lote (id_insumo, id_finca, lote),
+  KEY idx_inventario_finca (id_finca),
+  KEY idx_inventario_vencimiento (fecha_vencimiento),
+  CONSTRAINT fk_inventario_insumo FOREIGN KEY (id_insumo) REFERENCES insumos(id_insumo) ON DELETE CASCADE,
+  CONSTRAINT fk_inventario_finca FOREIGN KEY (id_finca) REFERENCES fincas(id_finca) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- AUTO_INCREMENT de la tabla `registros_peso`
---
-ALTER TABLE `registros_peso`
-  MODIFY `id_peso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+CREATE TABLE movimientos_inventario (
+  id_movimiento_inventario INT NOT NULL AUTO_INCREMENT,
+  id_insumo INT NOT NULL,
+  id_finca INT NOT NULL,
+  id_proveedor INT NULL,
+  tipo_movimiento ENUM('ENTRADA','SALIDA','AJUSTE','CONSUMO') NOT NULL,
+  cantidad DECIMAL(12,2) NOT NULL,
+  costo_unitario DECIMAL(12,2) NULL,
+  fecha_movimiento DATE NOT NULL,
+  motivo VARCHAR(255) NULL,
+  modulo_origen VARCHAR(80) NULL,
+  id_referencia INT NULL,
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_movimiento_inventario),
+  KEY idx_mov_inv_insumo (id_insumo),
+  KEY idx_mov_inv_finca_fecha (id_finca, fecha_movimiento),
+  CONSTRAINT fk_mov_inv_insumo FOREIGN KEY (id_insumo) REFERENCES insumos(id_insumo) ON DELETE CASCADE,
+  CONSTRAINT fk_mov_inv_finca FOREIGN KEY (id_finca) REFERENCES fincas(id_finca) ON DELETE CASCADE,
+  CONSTRAINT fk_mov_inv_proveedor FOREIGN KEY (id_proveedor) REFERENCES proveedores(id_proveedor) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- AUTO_INCREMENT de la tabla `registros_vacunacion`
---
-ALTER TABLE `registros_vacunacion`
-  MODIFY `id_registro` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+-- =========================================================
+-- 10. FINANZAS AVANZADAS
+-- =========================================================
 
---
--- AUTO_INCREMENT de la tabla `usuarios`
---
-ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+ALTER TABLE gastos
+  ADD COLUMN id_animal INT NULL AFTER id_finca,
+  ADD COLUMN id_proveedor INT NULL AFTER id_categoria,
+  ADD COLUMN estado_pago ENUM('PENDIENTE','PAGADO','VENCIDO','ANULADO') DEFAULT 'PAGADO' AFTER fecha,
+  ADD COLUMN metodo_pago VARCHAR(80) NULL AFTER estado_pago,
+  ADD COLUMN numero_soporte VARCHAR(120) NULL AFTER metodo_pago,
+  ADD COLUMN fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER numero_soporte,
+  ADD KEY idx_gastos_animal (id_animal),
+  ADD KEY idx_gastos_proveedor (id_proveedor),
+  ADD KEY idx_gastos_fecha (fecha),
+  ADD CONSTRAINT fk_gastos_animal FOREIGN KEY (id_animal) REFERENCES animales(id_animal) ON DELETE SET NULL,
+  ADD CONSTRAINT fk_gastos_proveedor FOREIGN KEY (id_proveedor) REFERENCES proveedores(id_proveedor) ON DELETE SET NULL;
 
---
--- AUTO_INCREMENT de la tabla `vacunas`
---
-ALTER TABLE `vacunas`
-  MODIFY `id_vacuna` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+ALTER TABLE ingresos
+  ADD COLUMN id_animal INT NULL AFTER id_finca,
+  ADD COLUMN id_cliente INT NULL AFTER id_categoria,
+  ADD COLUMN estado_pago ENUM('PENDIENTE','PAGADO','VENCIDO','ANULADO') DEFAULT 'PAGADO' AFTER fecha,
+  ADD COLUMN metodo_pago VARCHAR(80) NULL AFTER estado_pago,
+  ADD COLUMN numero_soporte VARCHAR(120) NULL AFTER metodo_pago,
+  ADD COLUMN fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER numero_soporte,
+  ADD KEY idx_ingresos_animal (id_animal),
+  ADD KEY idx_ingresos_cliente (id_cliente),
+  ADD KEY idx_ingresos_fecha (fecha),
+  ADD CONSTRAINT fk_ingresos_animal FOREIGN KEY (id_animal) REFERENCES animales(id_animal) ON DELETE SET NULL,
+  ADD CONSTRAINT fk_ingresos_cliente FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON DELETE SET NULL;
 
---
--- Restricciones para tablas volcadas
---
+CREATE TABLE cuentas_por_pagar (
+  id_cuenta_pagar INT NOT NULL AUTO_INCREMENT,
+  id_usuario INT NOT NULL,
+  id_finca INT NULL,
+  id_proveedor INT NULL,
+  descripcion VARCHAR(255) NOT NULL,
+  monto DECIMAL(12,2) NOT NULL,
+  fecha_emision DATE NULL,
+  fecha_vencimiento DATE NOT NULL,
+  estado ENUM('PENDIENTE','PAGADA','VENCIDA','ANULADA') DEFAULT 'PENDIENTE',
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_cuenta_pagar),
+  KEY idx_cpp_usuario_estado (id_usuario, estado),
+  KEY idx_cpp_vencimiento (fecha_vencimiento),
+  CONSTRAINT fk_cpp_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+  CONSTRAINT fk_cpp_finca FOREIGN KEY (id_finca) REFERENCES fincas(id_finca) ON DELETE SET NULL,
+  CONSTRAINT fk_cpp_proveedor FOREIGN KEY (id_proveedor) REFERENCES proveedores(id_proveedor) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Filtros para la tabla `animales`
---
-ALTER TABLE `animales`
-  ADD CONSTRAINT `animales_ibfk_1` FOREIGN KEY (`id_finca`) REFERENCES `fincas` (`id_finca`) ON DELETE CASCADE;
+CREATE TABLE cuentas_por_cobrar (
+  id_cuenta_cobrar INT NOT NULL AUTO_INCREMENT,
+  id_usuario INT NOT NULL,
+  id_finca INT NULL,
+  id_cliente INT NULL,
+  descripcion VARCHAR(255) NOT NULL,
+  monto DECIMAL(12,2) NOT NULL,
+  fecha_emision DATE NULL,
+  fecha_vencimiento DATE NOT NULL,
+  estado ENUM('PENDIENTE','COBRADA','VENCIDA','ANULADA') DEFAULT 'PENDIENTE',
+  observaciones TEXT NULL,
+  PRIMARY KEY (id_cuenta_cobrar),
+  KEY idx_cpc_usuario_estado (id_usuario, estado),
+  KEY idx_cpc_vencimiento (fecha_vencimiento),
+  CONSTRAINT fk_cpc_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+  CONSTRAINT fk_cpc_finca FOREIGN KEY (id_finca) REFERENCES fincas(id_finca) ON DELETE SET NULL,
+  CONSTRAINT fk_cpc_cliente FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Filtros para la tabla `categorias_financieras`
---
-ALTER TABLE `categorias_financieras`
-  ADD CONSTRAINT `categorias_financieras_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;
+-- =========================================================
+-- 11. ARCHIVOS / SOPORTES
+-- =========================================================
 
---
--- Filtros para la tabla `fincas`
---
-ALTER TABLE `fincas`
-  ADD CONSTRAINT `fincas_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;
+CREATE TABLE archivos (
+  id_archivo INT NOT NULL AUTO_INCREMENT,
+  id_usuario INT NOT NULL,
+  modulo VARCHAR(80) NOT NULL,
+  id_referencia INT NULL,
+  nombre_archivo VARCHAR(255) NOT NULL,
+  url VARCHAR(500) NOT NULL,
+  tipo_mime VARCHAR(120) NULL,
+  tamano_bytes BIGINT NULL,
+  descripcion VARCHAR(255) NULL,
+  fecha_subida TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id_archivo),
+  KEY idx_archivos_usuario (id_usuario),
+  KEY idx_archivos_modulo_ref (modulo, id_referencia),
+  CONSTRAINT fk_archivos_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Filtros para la tabla `gastos`
---
-ALTER TABLE `gastos`
-  ADD CONSTRAINT `fk_gastos_categoria` FOREIGN KEY (`id_categoria`) REFERENCES `categorias_financieras` (`id_categoria`) ON DELETE SET NULL,
-  ADD CONSTRAINT `gastos_ibfk_1` FOREIGN KEY (`id_finca`) REFERENCES `fincas` (`id_finca`) ON DELETE CASCADE;
+-- =========================================================
+-- 12. ALERTAS
+-- =========================================================
 
---
--- Filtros para la tabla `ingresos`
---
-ALTER TABLE `ingresos`
-  ADD CONSTRAINT `fk_ingresos_categoria` FOREIGN KEY (`id_categoria`) REFERENCES `categorias_financieras` (`id_categoria`) ON DELETE SET NULL,
-  ADD CONSTRAINT `ingresos_ibfk_1` FOREIGN KEY (`id_finca`) REFERENCES `fincas` (`id_finca`) ON DELETE CASCADE;
+CREATE TABLE alertas (
+  id_alerta INT NOT NULL AUTO_INCREMENT,
+  id_usuario INT NOT NULL,
+  id_finca INT NULL,
+  id_animal INT NULL,
+  tipo_alerta ENUM(
+    'VACUNA_VENCIDA','VACUNA_PROXIMA','TRATAMIENTO_PENDIENTE','PARTO_PROXIMO',
+    'BAJO_STOCK','INSUMO_VENCIDO','BALANCE_NEGATIVO','CUENTA_VENCIDA',
+    'PESO_BAJO','PRODUCCION_BAJA','GENERAL'
+  ) NOT NULL,
+  titulo VARCHAR(150) NOT NULL,
+  mensaje TEXT NOT NULL,
+  prioridad ENUM('BAJA','MEDIA','ALTA','CRITICA') DEFAULT 'MEDIA',
+  estado ENUM('PENDIENTE','VISTA','RESUELTA','DESCARTADA') DEFAULT 'PENDIENTE',
+  fecha_alerta DATE NOT NULL,
+  fecha_resuelta DATETIME NULL,
+  modulo_origen VARCHAR(80) NULL,
+  id_referencia INT NULL,
+  fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id_alerta),
+  KEY idx_alertas_usuario_estado (id_usuario, estado),
+  KEY idx_alertas_fecha (fecha_alerta),
+  KEY idx_alertas_animal (id_animal),
+  CONSTRAINT fk_alertas_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+  CONSTRAINT fk_alertas_finca FOREIGN KEY (id_finca) REFERENCES fincas(id_finca) ON DELETE SET NULL,
+  CONSTRAINT fk_alertas_animal FOREIGN KEY (id_animal) REFERENCES animales(id_animal) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Filtros para la tabla `registros_peso`
---
-ALTER TABLE `registros_peso`
-  ADD CONSTRAINT `registros_peso_ibfk_1` FOREIGN KEY (`id_animal`) REFERENCES `animales` (`id_animal`) ON DELETE CASCADE;
-
---
--- Filtros para la tabla `registros_vacunacion`
---
-ALTER TABLE `registros_vacunacion`
-  ADD CONSTRAINT `registros_vacunacion_ibfk_1` FOREIGN KEY (`id_animal`) REFERENCES `animales` (`id_animal`) ON DELETE CASCADE,
-  ADD CONSTRAINT `registros_vacunacion_ibfk_2` FOREIGN KEY (`id_vacuna`) REFERENCES `vacunas` (`id_vacuna`) ON DELETE CASCADE;
-
---
--- Filtros para la tabla `vacunas`
---
-ALTER TABLE `vacunas`
-  ADD CONSTRAINT `fk_vacunas_usuarios` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+SET FOREIGN_KEY_CHECKS = 1;
