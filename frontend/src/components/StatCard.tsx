@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+﻿import type { ReactNode } from 'react'
 
 interface StatCardProps {
   title: string
@@ -18,22 +18,23 @@ function StatCard({ title, value, icon, tone = 'green', helper }: StatCardProps)
   }
 
   return (
-    <div className="rounded-[1.75rem] border border-emerald-950/10 bg-[#fff8ec]/95 p-5 shadow-lg shadow-emerald-950/10 ring-1 ring-white/70 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-emerald-950/15">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-emerald-950/60">
-            {title}
-          </p>
-          <div className="mt-2 text-3xl font-bold text-emerald-950">
-            {value}
-          </div>
-        </div>
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md">
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-w-0 text-sm font-semibold text-slate-500">
+          {title}
+        </p>
 
         {icon && (
-          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl shadow-sm ring-1 ${tones[tone]}`}>
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm ring-1 ${tones[tone]}`}>
             {icon}
           </div>
         )}
+      </div>
+
+      <div className="mt-3 min-w-0 overflow-hidden text-2xl font-bold leading-tight tracking-tight text-slate-950 sm:text-3xl">
+        <span className="block truncate tabular-nums" title={typeof value === 'string' ? value : undefined}>
+          {value}
+        </span>
       </div>
 
       {helper && (

@@ -1,9 +1,13 @@
-import api from './api'
+﻿import api from './api'
 
 export interface Gasto {
   id_gasto: number
   id_finca: number
   id_categoria: number | null
+  id_animal?: number | null
+  id_proveedor?: number | null
+  origen?: string | null
+  id_referencia?: number | null
   categoria?: string | null
   nombre_categoria?: string | null
   descripcion: string | null
@@ -16,6 +20,10 @@ export interface Ingreso {
   id_ingreso: number
   id_finca: number
   id_categoria: number | null
+  id_animal?: number | null
+  id_cliente?: number | null
+  origen?: string | null
+  id_referencia?: number | null
   categoria?: string | null
   nombre_categoria?: string | null
   descripcion: string | null
@@ -66,3 +74,7 @@ export const getResumenFinanciero = async () => {
   const response = await api.get('/finanzas/resumen')
   return response.data
 }
+
+
+
+

@@ -1,4 +1,4 @@
-import api from './api'
+﻿import api from './api'
 
 export interface Vacuna {
   id_vacuna: number
@@ -34,3 +34,4 @@ export const deleteVacuna = async (id: number) => {
   const response = await api.delete(`/vacunas/${id}`)
   return response.data
 }
+

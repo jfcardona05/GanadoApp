@@ -1,4 +1,4 @@
-import { Edit3, MapPin, Plus, Ruler, Search, Trash2 } from 'lucide-react'
+﻿import { Edit3, MapPin, Plus, Ruler, Search, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 
@@ -172,7 +172,7 @@ function Fincas() {
         ) : fincas.length === 0 ? (
           <EmptyState
             title="No hay fincas registradas"
-            description="Crea tu primera finca para empezar a registrar animales, pesos, vacunas y finanzas."
+            description="Crea tu primera finca para registrar animales, pesos, vacunas y finanzas."
           />
         ) : fincasFiltradas.length === 0 ? (
           <EmptyState title="No encontramos fincas" description="Prueba con otro nombre o ubicación." />
@@ -269,3 +269,6 @@ function Fincas() {
 }
 
 export default Fincas
+
+
+

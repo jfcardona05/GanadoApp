@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+﻿import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 import Alert from '../components/Alert'
@@ -80,3 +80,5 @@ function Alertas() {
 }
 
 export default Alertas
+
+

@@ -1,4 +1,4 @@
-import api from './api'
+﻿import api from './api'
 
 export interface CategoriaFinanciera {
   id_categoria: number
@@ -6,6 +6,7 @@ export interface CategoriaFinanciera {
   nombre: string
   tipo: 'GASTO' | 'INGRESO'
   fecha_creacion?: string
+  es_sistema?: number | boolean
 }
 
 interface CategoriaData {
@@ -35,3 +36,5 @@ export const deleteCategoriaFinanciera = async (id: number) => {
   const response = await api.delete(`/categorias-financieras/${id}`)
   return response.data
 }
+
+

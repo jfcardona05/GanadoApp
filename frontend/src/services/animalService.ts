@@ -1,4 +1,4 @@
-import api from './api'
+﻿import api from './api'
 
 export interface Animal {
   id_animal: number
@@ -73,3 +73,5 @@ export const deleteAnimal = async (id: number) => {
   const response = await api.delete(`/animales/${id}`)
   return response.data
 }
+
+

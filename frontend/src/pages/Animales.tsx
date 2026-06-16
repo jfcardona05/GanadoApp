@@ -1,4 +1,4 @@
-import {
+﻿import {
   Activity,
   Edit3,
   HeartPulse,
@@ -396,7 +396,7 @@ function Animales() {
         {loading ? (
           <p className="text-sm text-slate-500">Cargando animales...</p>
         ) : animales.length === 0 ? (
-          <EmptyState title="No hay animales registrados" description="Registra tu primer animal para empezar a controlar vacunas, peso, salud y trazabilidad." actionLabel="Registrar animal" onAction={abrirModalCrear} />
+          <EmptyState title="No hay animales registrados" description="Registra tu primer animal para controlar vacunas, peso, salud y trazabilidad." actionLabel="Registrar animal" onAction={abrirModalCrear} />
         ) : animalesFiltrados.length === 0 ? (
           <EmptyState title="No encontramos animales" description="Prueba con otro código, finca o estado." />
         ) : (
@@ -645,3 +645,6 @@ function Animales() {
 }
 
 export default Animales
+
+
+

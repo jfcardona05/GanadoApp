@@ -43,25 +43,25 @@ const obtenerOCrearCategoriaFinanciera = async (id_usuario, nombre, tipo) => {
   };
 };
 
-const registrarIngresoAutomatico = async ({ id_usuario, id_finca, id_animal = null, id_cliente = null, categoriaNombre, descripcion, monto, fecha }) => {
+const registrarIngresoAutomatico = async ({ id_usuario, id_finca, id_animal = null, id_cliente = null, categoriaNombre, descripcion, monto, fecha, origen = null, id_referencia = null }) => {
   const categoria = await obtenerOCrearCategoriaFinanciera(id_usuario, categoriaNombre, 'INGRESO');
 
   await pool.query(
     `INSERT INTO ingresos
-    (id_finca, id_animal, id_categoria, id_cliente, categoria, descripcion, monto, fecha)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id_finca, id_animal, categoria.id_categoria, id_cliente, categoria.nombre, descripcion, monto, fecha]
+    (id_finca, id_animal, id_categoria, id_cliente, categoria, descripcion, monto, fecha, origen, id_referencia)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id_finca, id_animal, categoria.id_categoria, id_cliente, categoria.nombre, descripcion, monto, fecha, origen, id_referencia]
   );
 };
 
-const registrarGastoAutomatico = async ({ id_usuario, id_finca, id_animal = null, id_proveedor = null, categoriaNombre, descripcion, monto, fecha }) => {
+const registrarGastoAutomatico = async ({ id_usuario, id_finca, id_animal = null, id_proveedor = null, categoriaNombre, descripcion, monto, fecha, origen = null, id_referencia = null }) => {
   const categoria = await obtenerOCrearCategoriaFinanciera(id_usuario, categoriaNombre, 'GASTO');
 
   await pool.query(
     `INSERT INTO gastos
-    (id_finca, id_animal, id_categoria, id_proveedor, categoria, descripcion, monto, fecha)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id_finca, id_animal, categoria.id_categoria, id_proveedor, categoria.nombre, descripcion, monto, fecha]
+    (id_finca, id_animal, id_categoria, id_proveedor, categoria, descripcion, monto, fecha, origen, id_referencia)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id_finca, id_animal, categoria.id_categoria, id_proveedor, categoria.nombre, descripcion, monto, fecha, origen, id_referencia]
   );
 };
 
@@ -550,26 +550,89 @@ const obtenerContactos = (tabla) => async (req, res) => {
 const crearCompraAnimal = async (req, res) => {
   try {
     const id_usuario = req.usuario.id_usuario;
-    const { id_finca, id_animal, id_proveedor, fecha_compra, precio, peso_compra, descripcion, observaciones } = req.body;
+    const {
+      id_finca,
+      id_animal,
+      id_proveedor,
+      fecha_compra,
+      precio,
+      peso_compra,
+      descripcion,
+      observaciones,
+      codigo_animal,
+      nombre_animal,
+      raza,
+      sexo,
+      color
+    } = req.body;
     if (!id_finca || !fecha_compra || !precio) return badRequest(res, 'Finca, fecha y precio son obligatorios');
     if (!(await validarFinca(id_finca, id_usuario))) return notFound(res, 'La finca no pertenece al usuario');
     if (id_animal && !(await validarAnimal(id_animal, id_usuario))) return notFound(res, 'El animal no pertenece al usuario');
-    await pool.query(
+
+    let idAnimalCompra = id_animal || null;
+
+    if (!idAnimalCompra && codigo_animal && sexo) {
+      const [animalResult] = await pool.query(
+        `INSERT INTO animales
+        (id_finca, codigo, nombre, raza, color, procedencia, sexo, fecha_ingreso, peso_actual, precio_compra, estado_productivo, estado_salud, estado_comercial)
+        VALUES (?, ?, ?, ?, ?, 'COMPRADO', ?, ?, ?, ?, 'LEVANTE', 'SANO', 'ACTIVO')`,
+        [
+          id_finca,
+          codigo_animal,
+          nombre_animal || null,
+          raza || null,
+          color || null,
+          sexo,
+          fecha_compra,
+          peso_compra || null,
+          precio
+        ]
+      );
+      idAnimalCompra = animalResult.insertId;
+
+      if (peso_compra) {
+        await pool.query(
+          `INSERT INTO registros_peso (id_animal, peso, fecha_registro, observaciones)
+          VALUES (?, ?, ?, ?)`,
+          [idAnimalCompra, peso_compra, fecha_compra, 'Registro inicial al comprar el animal']
+        );
+      }
+    }
+
+    const [compraResult] = await pool.query(
       `INSERT INTO compras_animales
-      (id_usuario, id_finca, id_animal, id_proveedor, fecha_compra, precio, peso_compra, descripcion, observaciones)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id_usuario, id_finca, id_animal || null, id_proveedor || null, fecha_compra, precio, peso_compra || null, descripcion || null, observaciones || null]
+      (id_usuario, id_finca, id_animal, id_proveedor, fecha_compra, precio, peso_compra, descripcion, observaciones, codigo_animal, nombre_animal, raza, sexo, color, procedencia)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id_usuario,
+        id_finca,
+        idAnimalCompra,
+        id_proveedor || null,
+        fecha_compra,
+        precio,
+        peso_compra || null,
+        descripcion || null,
+        observaciones || null,
+        codigo_animal || null,
+        nombre_animal || null,
+        raza || null,
+        sexo || null,
+        color || null,
+        'COMPRADO'
+      ]
     );
 
     await registrarGastoAutomatico({
       id_usuario,
       id_finca,
-      id_animal: id_animal || null,
+      id_animal: idAnimalCompra,
       id_proveedor: id_proveedor || null,
       categoriaNombre: 'Compra de animales',
       descripcion: descripcion || 'Compra de animal registrada desde Compras y ventas',
       monto: precio,
-      fecha: fecha_compra
+      fecha: fecha_compra,
+      origen: 'COMPRA_ANIMAL',
+      id_referencia: compraResult.insertId
     });
 
     res.status(201).json({ message: 'Compra de animal registrada correctamente' });
@@ -603,7 +666,7 @@ const crearVentaAnimal = async (req, res) => {
     if (!id_finca || !fecha_venta || !precio) return badRequest(res, 'Finca, fecha y precio son obligatorios');
     if (!(await validarFinca(id_finca, id_usuario))) return notFound(res, 'La finca no pertenece al usuario');
     if (id_animal && !(await validarAnimal(id_animal, id_usuario))) return notFound(res, 'El animal no pertenece al usuario');
-    await pool.query(
+    const [ventaResult] = await pool.query(
       `INSERT INTO ventas_animales
       (id_usuario, id_finca, id_animal, id_cliente, fecha_venta, precio, peso_venta, utilidad_estimada, descripcion, observaciones)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -621,7 +684,9 @@ const crearVentaAnimal = async (req, res) => {
       categoriaNombre: 'Venta de animales',
       descripcion: descripcion || 'Venta de animal registrada desde Compras y ventas',
       monto: precio,
-      fecha: fecha_venta
+      fecha: fecha_venta,
+      origen: 'VENTA_ANIMAL',
+      id_referencia: ventaResult.insertId
     });
 
     res.status(201).json({ message: 'Venta de animal registrada correctamente' });
@@ -654,7 +719,7 @@ const crearVentaLeche = async (req, res) => {
     const { id_finca, id_cliente, fecha_venta, litros, precio_litro, observaciones } = req.body;
     if (!id_finca || !fecha_venta || !litros || !precio_litro) return badRequest(res, 'Finca, fecha, litros y precio son obligatorios');
     if (!(await validarFinca(id_finca, id_usuario))) return notFound(res, 'La finca no pertenece al usuario');
-    await pool.query(
+    const [ventaLecheResult] = await pool.query(
       `INSERT INTO ventas_leche
       (id_usuario, id_finca, id_cliente, fecha_venta, litros, precio_litro, total, observaciones)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -668,7 +733,9 @@ const crearVentaLeche = async (req, res) => {
       categoriaNombre: 'Venta de leche',
       descripcion: observaciones || `Venta de ${litros} litros de leche`,
       monto: Number(litros) * Number(precio_litro),
-      fecha: fecha_venta
+      fecha: fecha_venta,
+      origen: 'VENTA_LECHE',
+      id_referencia: ventaLecheResult.insertId
     });
 
     res.status(201).json({ message: 'Venta de leche registrada correctamente' });

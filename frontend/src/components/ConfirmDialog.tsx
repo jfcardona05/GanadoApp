@@ -1,4 +1,4 @@
-import { TriangleAlert } from 'lucide-react'
+﻿import { TriangleAlert } from 'lucide-react'
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Button from './Button'
@@ -49,7 +49,7 @@ function ConfirmDialog({
         onClick={onCancel}
         aria-label="Cancelar confirmación"
       />
-      <div className="relative w-full max-w-md rounded-2xl border border-white/80 bg-[#fff8ec] p-6 shadow-2xl shadow-slate-950/25">
+      <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-950/25">
         <div className="flex gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 ring-1 ring-red-200">
             <TriangleAlert size={22} />
@@ -76,3 +76,5 @@ function ConfirmDialog({
 }
 
 export default ConfirmDialog
+
+

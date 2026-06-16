@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+﻿import type { ReactNode } from 'react'
 
 interface BadgeProps {
   children: ReactNode
@@ -23,3 +23,5 @@ function Badge({ children, variant = 'gray', className = '' }: BadgeProps) {
 }
 
 export default Badge
+
+

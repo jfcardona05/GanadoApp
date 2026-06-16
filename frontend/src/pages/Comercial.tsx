@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 
 import ModuleSection from '../components/ModuleSection'
 import PageHeader from '../components/PageHeader'
@@ -19,6 +19,30 @@ function Comercial() {
     ganaderiaService.getClientes().then((data) => setClientes(data.map((item) => ({ label: item.nombre, value: item.id_cliente }))))
     ganaderiaService.getProveedores().then((data) => setProveedores(data.map((item) => ({ label: item.nombre, value: item.id_proveedor }))))
   }, [])
+
+  const crearCompraConDatosAnimal = (data: Record<string, any>) => {
+    const detallesAnimal = [
+      data.codigo_animal ? `Código: ${data.codigo_animal}` : '',
+      data.nombre_animal ? `Nombre: ${data.nombre_animal}` : '',
+      data.raza ? `Raza: ${data.raza}` : '',
+      data.sexo ? `Sexo: ${data.sexo}` : '',
+    ].filter(Boolean).join(' · ')
+
+    const descripcion = [
+      detallesAnimal ? `Animal comprado (${detallesAnimal})` : 'Animal comprado',
+      data.descripcion,
+    ].filter(Boolean).join(' - ')
+
+    return ganaderiaService.createCompraAnimal({
+      id_finca: data.id_finca,
+      id_proveedor: data.id_proveedor,
+      fecha_compra: data.fecha_compra,
+      precio: data.precio,
+      peso_compra: data.peso_compra,
+      descripcion,
+      observaciones: data.observaciones,
+    })
+  }
 
   return (
     <div>
@@ -60,21 +84,25 @@ function Comercial() {
           buttonLabel="Registrar compra"
           emptyTitle="No hay compras de animales"
           load={ganaderiaService.getComprasAnimales}
-          create={ganaderiaService.createCompraAnimal}
-          searchKeys={['nombre_proveedor', 'nombre_finca', 'codigo', 'descripcion']}
+          create={crearCompraConDatosAnimal}
+          searchKeys={['nombre_proveedor', 'nombre_finca', 'descripcion']}
+          simpleHint="Registra el animal que estás comprando. Aquí no se selecciona un animal existente porque todavía está entrando a la finca."
           fields={[
             { name: 'id_finca', label: 'Finca', type: 'select', required: true, options: fincas },
-            { name: 'id_animal', label: 'Animal registrado', type: 'select', options: animales },
             { name: 'id_proveedor', label: 'Proveedor', type: 'select', options: proveedores },
             { name: 'fecha_compra', label: 'Fecha', type: 'date', required: true },
             { name: 'precio', label: 'Precio', type: 'number', required: true },
+            { name: 'codigo_animal', label: 'Código del animal comprado', placeholder: 'Ej: A-102' },
+            { name: 'nombre_animal', label: 'Nombre del animal', placeholder: 'Opcional' },
+            { name: 'raza', label: 'Raza', placeholder: 'Brahman, Gyr, Angus...' },
+            { name: 'sexo', label: 'Sexo', type: 'select', options: [{ label: 'Macho', value: 'MACHO' }, { label: 'Hembra', value: 'HEMBRA' }] },
             { name: 'peso_compra', label: 'Peso compra', type: 'number' },
-            { name: 'descripcion', label: 'Descripción' },
+            { name: 'descripcion', label: 'Descripción adicional' },
             { name: 'observaciones', label: 'Observaciones', type: 'textarea' },
           ]}
           columns={[
             { key: 'fecha_compra', label: 'Fecha' },
-            { key: 'codigo', label: 'Animal' },
+            { key: 'descripcion', label: 'Animal comprado' },
             { key: 'nombre_proveedor', label: 'Proveedor' },
             { key: 'precio', label: 'Precio', render: (item) => `$${Number(item.precio || 0).toLocaleString()}` },
             { key: 'peso_compra', label: 'Peso' },
@@ -161,3 +189,5 @@ function Comercial() {
 }
 
 export default Comercial
+
+

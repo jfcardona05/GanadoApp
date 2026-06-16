@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 
 import Alert from '../components/Alert'
 import EmptyState from '../components/EmptyState'
@@ -59,3 +59,5 @@ function Trazabilidad() {
 }
 
 export default Trazabilidad
+
+

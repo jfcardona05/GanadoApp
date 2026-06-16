@@ -1,4 +1,4 @@
-import { CalendarClock, Edit3, Plus, Search, ShieldCheck, Syringe, Trash2 } from 'lucide-react'
+﻿import { CalendarClock, Edit3, Plus, Search, ShieldCheck, Syringe, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 
@@ -529,3 +529,5 @@ function Vacunas() {
 }
 
 export default Vacunas
+
+

@@ -1,4 +1,4 @@
-import { CalendarDays, Plus, Scale, Search, Trash2, TrendingUp } from 'lucide-react'
+﻿import { CalendarDays, Plus, Scale, Search, Trash2, TrendingUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 
@@ -282,3 +282,5 @@ function Pesos() {
 }
 
 export default Pesos
+
+

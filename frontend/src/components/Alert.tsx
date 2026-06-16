@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Info, TriangleAlert } from 'lucide-react'
+﻿import { AlertCircle, CheckCircle2, Info, TriangleAlert } from 'lucide-react'
 
 interface AlertProps {
   type: 'success' | 'error' | 'warning' | 'info'
@@ -31,3 +31,5 @@ function Alert({ type, message }: AlertProps) {
 }
 
 export default Alert
+
+

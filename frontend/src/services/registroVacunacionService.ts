@@ -1,4 +1,4 @@
-import api from './api'
+﻿import api from './api'
 
 export interface RegistroVacunacion {
   id_registro: number
@@ -37,3 +37,4 @@ export const deleteRegistroVacunacion = async (id: number) => {
   const response = await api.delete(`/registros-vacunacion/${id}`)
   return response.data
 }
+

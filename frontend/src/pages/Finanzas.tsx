@@ -1,11 +1,15 @@
-import {
+﻿import {
   ArrowDownCircle,
   ArrowUpCircle,
+  Banknote,
+  BarChart3,
   Edit3,
-  Eye,
-  FolderPlus,
+  HandCoins,
+  Landmark,
   Plus,
+  ReceiptText,
   Search,
+  Tags,
   Trash2,
   Wallet,
 } from 'lucide-react'
@@ -40,6 +44,7 @@ import {
   getIngresos,
 } from '../services/finanzaService'
 import type { Gasto, Ingreso } from '../services/finanzaService'
+import { ganaderiaService } from '../services/ganaderiaService'
 import { getErrorMessage } from '../utils/errors'
 
 type MovimientoEliminar = {
@@ -48,6 +53,8 @@ type MovimientoEliminar = {
 } | null
 
 type PeriodoFiltro = 'MES' | 'SEMANA' | 'ANIO' | 'TODO' | 'PERSONALIZADO'
+type TabFinanzas = 'resumen' | 'movimientos' | 'comercial' | 'cuentas' | 'categorias' | 'reportes'
+type Registro = Record<string, any>
 
 function startOfToday() {
   const date = new Date()
@@ -57,6 +64,10 @@ function startOfToday() {
 
 function formatDateInput(date: Date) {
   return date.toISOString().slice(0, 10)
+}
+
+function money(value: number | string | null | undefined) {
+  return `$${Number(value || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}`
 }
 
 function isDateInRange(value: string, desde: string, hasta: string) {
@@ -86,11 +97,28 @@ function getPeriodRange(periodo: PeriodoFiltro, fechaDesde: string, fechaHasta: 
   }
 }
 
+function origenLabel(origen?: string | null) {
+  const labels: Record<string, string> = {
+    MANUAL: 'Manual',
+    COMPRA_ANIMAL: 'Compra de animal',
+    VENTA_ANIMAL: 'Venta de animal',
+    VENTA_LECHE: 'Venta de leche',
+    COMPRA_INSUMO: 'Compra de insumos',
+  }
+  return origen ? labels[origen] || origen : 'Manual'
+}
+
 function Finanzas() {
+  const [activeTab, setActiveTab] = useState<TabFinanzas>('resumen')
   const [fincas, setFincas] = useState<Finca[]>([])
   const [categorias, setCategorias] = useState<CategoriaFinanciera[]>([])
   const [gastos, setGastos] = useState<Gasto[]>([])
   const [ingresos, setIngresos] = useState<Ingreso[]>([])
+  const [comprasAnimales, setComprasAnimales] = useState<Registro[]>([])
+  const [ventasAnimales, setVentasAnimales] = useState<Registro[]>([])
+  const [ventasLeche, setVentasLeche] = useState<Registro[]>([])
+  const [cuentasPagar, setCuentasPagar] = useState<Registro[]>([])
+  const [cuentasCobrar, setCuentasCobrar] = useState<Registro[]>([])
 
   const [tipoCategoria, setTipoCategoria] = useState<'GASTO' | 'INGRESO'>('GASTO')
   const [nombreCategoria, setNombreCategoria] = useState('')
@@ -112,7 +140,6 @@ function Finanzas() {
   const [fechaHasta, setFechaHasta] = useState('')
 
   const [modalCategoriaAbierto, setModalCategoriaAbierto] = useState(false)
-  const [modalCategoriasListaAbierto, setModalCategoriasListaAbierto] = useState(false)
   const [modalMovimientoAbierto, setModalMovimientoAbierto] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -122,21 +149,40 @@ function Finanzas() {
   const categoriasIngreso = categorias.filter((categoria) => categoria.tipo === 'INGRESO')
   const categoriasMovimiento = tipoMovimiento === 'GASTO' ? categoriasGasto : categoriasIngreso
   const rangoFecha = getPeriodRange(periodoFiltro, fechaDesde, fechaHasta)
-  const fincaSeleccionada = fincas.find((finca) => finca.id_finca === Number(fincaFiltro))
 
   const cargarDatos = async () => {
     try {
       setLoading(true)
-      const [fincasData, categoriasData, gastosData, ingresosData] = await Promise.all([
+      const [
+        fincasData,
+        categoriasData,
+        gastosData,
+        ingresosData,
+        comprasData,
+        ventasAnimalesData,
+        ventasLecheData,
+        cuentasPagarData,
+        cuentasCobrarData,
+      ] = await Promise.all([
         getFincas(),
         getCategoriasFinancieras(),
         getGastos(),
         getIngresos(),
+        ganaderiaService.getComprasAnimales(),
+        ganaderiaService.getVentasAnimales(),
+        ganaderiaService.getVentasLeche(),
+        ganaderiaService.getCuentasPagar(),
+        ganaderiaService.getCuentasCobrar(),
       ])
       setFincas(fincasData)
       setCategorias(categoriasData)
       setGastos(gastosData)
       setIngresos(ingresosData)
+      setComprasAnimales(comprasData)
+      setVentasAnimales(ventasAnimalesData)
+      setVentasLeche(ventasLecheData)
+      setCuentasPagar(cuentasPagarData)
+      setCuentasCobrar(cuentasCobrarData)
     } catch (error: unknown) {
       setError(getErrorMessage(error, 'Error al cargar finanzas'))
     } finally {
@@ -148,6 +194,70 @@ function Finanzas() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarDatos()
   }, [])
+
+  const obtenerNombreCategoriaMovimiento = (movimiento: Gasto | Ingreso) => {
+    return movimiento.nombre_categoria || movimiento.categoria || 'Sin categoría'
+  }
+
+  const filtrarPorFincaFecha = (item: { id_finca?: number | string; fecha?: string; fecha_compra?: string; fecha_venta?: string; fecha_vencimiento?: string }) => {
+    const fechaItem = item.fecha || item.fecha_compra || item.fecha_venta || item.fecha_vencimiento || ''
+    const coincideFinca = fincaFiltro ? Number(item.id_finca) === Number(fincaFiltro) : true
+    const coincideFecha = fechaItem ? isDateInRange(fechaItem, rangoFecha.desde, rangoFecha.hasta) : true
+    return coincideFinca && coincideFecha
+  }
+
+  const filtrarMovimiento = (movimiento: Gasto | Ingreso) => {
+    const texto = `${obtenerNombreCategoriaMovimiento(movimiento)} ${movimiento.descripcion || ''} ${movimiento.nombre_finca || ''} ${origenLabel(movimiento.origen)}`.toLowerCase()
+    return texto.includes(busquedaMovimiento.toLowerCase()) && filtrarPorFincaFecha(movimiento)
+  }
+
+  const gastosFiltrados = gastos.filter(filtrarMovimiento)
+  const ingresosFiltrados = ingresos.filter(filtrarMovimiento)
+  const comprasFiltradas = comprasAnimales.filter(filtrarPorFincaFecha)
+  const ventasAnimalesFiltradas = ventasAnimales.filter(filtrarPorFincaFecha)
+  const ventasLecheFiltradas = ventasLeche.filter(filtrarPorFincaFecha)
+  const cuentasPagarPendientes = cuentasPagar.filter((cuenta) => cuenta.estado === 'PENDIENTE')
+  const cuentasCobrarPendientes = cuentasCobrar.filter((cuenta) => cuenta.estado === 'PENDIENTE')
+
+  const resumen = useMemo(() => {
+    const totalGastos = gastosFiltrados.reduce((total, gasto) => total + Number(gasto.monto), 0)
+    const totalIngresos = ingresosFiltrados.reduce((total, ingreso) => total + Number(ingreso.monto), 0)
+    const balance = totalIngresos - totalGastos
+    const totalComprasAnimales = comprasFiltradas.reduce((total, compra) => total + Number(compra.precio || 0), 0)
+    const totalVentasAnimales = ventasAnimalesFiltradas.reduce((total, venta) => total + Number(venta.precio || 0), 0)
+    const totalVentasLeche = ventasLecheFiltradas.reduce((total, venta) => total + Number(venta.total || 0), 0)
+    const cuentasPorPagar = cuentasPagarPendientes.reduce((total, cuenta) => total + Number(cuenta.monto || 0), 0)
+    const cuentasPorCobrar = cuentasCobrarPendientes.reduce((total, cuenta) => total + Number(cuenta.monto || 0), 0)
+
+    const gastoPorCategoria = gastosFiltrados.reduce<Record<string, number>>((acc, gasto) => {
+      const categoria = obtenerNombreCategoriaMovimiento(gasto)
+      acc[categoria] = (acc[categoria] || 0) + Number(gasto.monto)
+      return acc
+    }, {})
+
+    const ingresoPorCategoria = ingresosFiltrados.reduce<Record<string, number>>((acc, ingreso) => {
+      const categoria = obtenerNombreCategoriaMovimiento(ingreso)
+      acc[categoria] = (acc[categoria] || 0) + Number(ingreso.monto)
+      return acc
+    }, {})
+
+    const categoriaMayorGasto = Object.entries(gastoPorCategoria).sort((a, b) => b[1] - a[1])[0]
+    const categoriaMayorIngreso = Object.entries(ingresoPorCategoria).sort((a, b) => b[1] - a[1])[0]
+
+    return {
+      totalGastos,
+      totalIngresos,
+      balance,
+      totalComprasAnimales,
+      totalVentasAnimales,
+      totalVentasLeche,
+      cuentasPorPagar,
+      cuentasPorCobrar,
+      categoriaMayorGasto,
+      categoriaMayorIngreso,
+      margen: totalIngresos > 0 ? (balance / totalIngresos) * 100 : 0,
+    }
+  }, [gastosFiltrados, ingresosFiltrados, comprasFiltradas, ventasAnimalesFiltradas, ventasLecheFiltradas, cuentasPagarPendientes, cuentasCobrarPendientes])
 
   const limpiarFormularioCategoria = () => {
     setTipoCategoria('GASTO')
@@ -288,53 +398,11 @@ function Finanzas() {
     }
   }
 
-  const obtenerNombreCategoriaMovimiento = (movimiento: Gasto | Ingreso) => {
-    return movimiento.nombre_categoria || movimiento.categoria || 'Sin categoría'
-  }
-
-  const filtrarMovimiento = (movimiento: Gasto | Ingreso) => {
-    const texto = `${obtenerNombreCategoriaMovimiento(movimiento)} ${movimiento.descripcion || ''} ${movimiento.nombre_finca || ''}`.toLowerCase()
-    const coincideBusqueda = texto.includes(busquedaMovimiento.toLowerCase())
-    const coincideFinca = fincaFiltro ? movimiento.id_finca === Number(fincaFiltro) : true
-    const coincideFecha = isDateInRange(movimiento.fecha, rangoFecha.desde, rangoFecha.hasta)
-    return coincideBusqueda && coincideFinca && coincideFecha
-  }
-
-  const gastosFiltrados = gastos.filter(filtrarMovimiento)
-  const ingresosFiltrados = ingresos.filter(filtrarMovimiento)
-
-  const resumenFiltrado = useMemo(() => {
-    const totalGastos = gastosFiltrados.reduce((total, gasto) => total + Number(gasto.monto), 0)
-    const totalIngresos = ingresosFiltrados.reduce((total, ingreso) => total + Number(ingreso.monto), 0)
-    const balance = totalIngresos - totalGastos
-    const mayorGasto = gastosFiltrados.reduce<Gasto | null>((mayor, gasto) => {
-      if (!mayor || Number(gasto.monto) > Number(mayor.monto)) return gasto
-      return mayor
-    }, null)
-
-    const gastoPorCategoria = gastosFiltrados.reduce<Record<string, number>>((acc, gasto) => {
-      const categoria = obtenerNombreCategoriaMovimiento(gasto)
-      acc[categoria] = (acc[categoria] || 0) + Number(gasto.monto)
-      return acc
-    }, {})
-
-    const categoriaMayorGasto = Object.entries(gastoPorCategoria).sort((a, b) => b[1] - a[1])[0]
-    const gastoPromedioPorAnimal = totalGastos > 0 && fincaSeleccionada ? totalGastos / Math.max(1, 1) : totalGastos
-
-    return {
-      totalGastos,
-      totalIngresos,
-      balance,
-      mayorGasto,
-      categoriaMayorGasto,
-      gastoPromedioPorAnimal,
-    }
-  }, [gastosFiltrados, ingresosFiltrados, fincaSeleccionada])
-
   const renderCategoria = (categoria: CategoriaFinanciera, variant: 'red' | 'green') => (
-    <div key={categoria.id_categoria} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
+    <div key={categoria.id_categoria} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="flex min-w-0 items-center gap-2">
         <Badge variant={variant}>{categoria.tipo === 'GASTO' ? 'Gasto' : 'Ingreso'}</Badge>
+        {categoria.es_sistema ? <Badge variant="blue">Base</Badge> : null}
         <span className="truncate font-semibold text-slate-800">{categoria.nombre}</span>
       </div>
       <div className="flex shrink-0 gap-2">
@@ -349,11 +417,12 @@ function Finanzas() {
     const id = esGasto ? (movimiento as Gasto).id_gasto : (movimiento as Ingreso).id_ingreso
 
     return (
-      <div key={`${tipo}-${id}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
+      <div key={`${tipo}-${id}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="mb-1 flex items-center gap-2">
+            <div className="mb-1 flex flex-wrap items-center gap-2">
               <Badge variant={esGasto ? 'red' : 'green'}>{esGasto ? 'Gasto' : 'Ingreso'}</Badge>
+              <Badge variant={movimiento.origen && movimiento.origen !== 'MANUAL' ? 'blue' : 'gray'}>{origenLabel(movimiento.origen)}</Badge>
               <p className="truncate font-semibold text-slate-900">{obtenerNombreCategoriaMovimiento(movimiento)}</p>
             </div>
             <p className="text-sm text-slate-500">{movimiento.descripcion || 'Sin descripción'}</p>
@@ -361,24 +430,34 @@ function Finanzas() {
           </div>
 
           <div className="shrink-0 text-right">
-            <p className={`font-bold ${esGasto ? 'text-red-600' : 'text-green-700'}`}>${Number(movimiento.monto).toLocaleString()}</p>
-            <button onClick={() => setMovimientoAEliminar({ tipo, id })} className="mt-2 text-xs font-semibold text-red-600 hover:underline">
-              Eliminar
-            </button>
+            <p className={`shrink-0 whitespace-nowrap text-right font-bold tabular-nums ${esGasto ? 'text-red-600' : 'text-emerald-700'}`}>{money(movimiento.monto)}</p>
+            {(!movimiento.origen || movimiento.origen === 'MANUAL') && (
+              <button onClick={() => setMovimientoAEliminar({ tipo, id })} className="mt-2 text-xs font-semibold text-red-600 hover:underline">
+                Eliminar
+              </button>
+            )}
           </div>
         </div>
       </div>
     )
   }
 
+  const tabs: Array<{ id: TabFinanzas; label: string; icon: typeof Wallet }> = [
+    { id: 'resumen', label: 'Resumen', icon: Wallet },
+    { id: 'movimientos', label: 'Movimientos', icon: ReceiptText },
+    { id: 'comercial', label: 'Compras y ventas', icon: HandCoins },
+    { id: 'cuentas', label: 'Cuentas', icon: Landmark },
+    { id: 'categorias', label: 'Categorías', icon: Tags },
+    { id: 'reportes', label: 'Reportes', icon: BarChart3 },
+  ]
+
   return (
     <div>
       <PageHeader
         title="Finanzas"
-        description="Control económico de tus fincas: gastos, ingresos, balance y categorías."
+        description="Responde rápido si la finca está ganando, perdiendo, qué debe pagar, qué falta por cobrar y de dónde sale cada movimiento."
         action={
           <>
-            <Button variant="secondary" onClick={() => setModalCategoriasListaAbierto(true)} icon={<Eye size={17} />}>Ver categorías</Button>
             <Button variant="danger" onClick={() => abrirModalMovimiento('GASTO')} icon={<ArrowDownCircle size={17} />}>Registrar gasto</Button>
             <Button onClick={() => abrirModalMovimiento('INGRESO')} icon={<ArrowUpCircle size={17} />}>Registrar ingreso</Button>
           </>
@@ -387,13 +466,7 @@ function Finanzas() {
 
       {error && <Alert type="error" message={error} />}
       {mensaje && <Alert type="success" message={mensaje} />}
-      {resumenFiltrado.balance < 0 && <Alert type="warning" message="El balance filtrado está en negativo. Revisa los gastos para tener claro en qué se está yendo el dinero." />}
-
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <StatCard title="Ingresos" value={`$${resumenFiltrado.totalIngresos.toLocaleString()}`} icon={<ArrowUpCircle size={20} />} />
-        <StatCard title="Gastos" value={`$${resumenFiltrado.totalGastos.toLocaleString()}`} icon={<ArrowDownCircle size={20} />} tone="red" />
-        <StatCard title="Balance" value={`$${resumenFiltrado.balance.toLocaleString()}`} icon={<Wallet size={20} />} tone={resumenFiltrado.balance >= 0 ? 'green' : 'red'} />
-      </div>
+      {resumen.balance < 0 && <Alert type="warning" message="El balance filtrado está en negativo. Revisa primero los gastos grandes y cuentas pendientes." />}
 
       <Panel title="Vista por finca y fecha" className="mb-6">
         <div className="grid gap-3 lg:grid-cols-[1fr_190px_160px_160px]">
@@ -425,101 +498,210 @@ function Finanzas() {
         </div>
       </Panel>
 
-      <Panel title="Cuentas pendientes" className="mb-6" helper="Aquí puedes revisar deudas por pagar y dinero pendiente por cobrar.">
-        <div className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="font-semibold text-slate-900">Controla cuentas por pagar y por cobrar</p>
-            <p className="mt-1 text-sm leading-6 text-slate-500">
-              Útil para saber qué facturas se deben pagar y qué ventas faltan por cobrar.
-            </p>
+      <div className="mb-6 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2">
+        {tabs.map((tab) => {
+          const Icon = tab.icon
+          const active = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                active ? 'bg-emerald-700 text-white' : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
+              }`}
+            >
+              <Icon size={16} />
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {activeTab === 'resumen' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <StatCard title="Ingresos" value={money(resumen.totalIngresos)} icon={<ArrowUpCircle size={20} />} />
+            <StatCard title="Gastos" value={money(resumen.totalGastos)} icon={<ArrowDownCircle size={20} />} tone="red" />
+            <StatCard title="Balance" value={money(resumen.balance)} icon={<Wallet size={20} />} tone={resumen.balance >= 0 ? 'green' : 'red'} />
+            <StatCard title="Por cobrar" value={money(resumen.cuentasPorCobrar)} icon={<Banknote size={20} />} tone="blue" />
+            <StatCard title="Por pagar" value={money(resumen.cuentasPorPagar)} icon={<Landmark size={20} />} tone="yellow" />
+            <StatCard title="Margen" value={`${resumen.margen.toFixed(1)}%`} icon={<BarChart3 size={20} />} tone={resumen.margen >= 0 ? 'green' : 'red'} />
           </div>
-          <Link
-            to="/cuentas"
-            className="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-800"
-          >
-            Ver cuentas
-          </Link>
+
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Panel title="Lo más importante">
+              <div className="grid gap-3">
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <p className="text-sm font-semibold text-slate-500">Mayor gasto</p>
+                  <p className="mt-1 text-lg font-bold text-slate-950">{resumen.categoriaMayorGasto?.[0] || 'Sin gastos'}</p>
+                  <p className="text-sm text-red-600">{resumen.categoriaMayorGasto ? money(resumen.categoriaMayorGasto[1]) : money(0)}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <p className="text-sm font-semibold text-slate-500">Mayor ingreso</p>
+                  <p className="mt-1 text-lg font-bold text-slate-950">{resumen.categoriaMayorIngreso?.[0] || 'Sin ingresos'}</p>
+                  <p className="text-sm text-emerald-700">{resumen.categoriaMayorIngreso ? money(resumen.categoriaMayorIngreso[1]) : money(0)}</p>
+                </div>
+              </div>
+            </Panel>
+
+            <Panel title="Resumen ganadero">
+              <div className="grid gap-3">
+                <div className="flex justify-between rounded-2xl border border-slate-200 p-4">
+                  <span className="text-sm font-semibold text-slate-600">Compra de animales</span>
+                  <span className="font-bold text-red-600">{money(resumen.totalComprasAnimales)}</span>
+                </div>
+                <div className="flex justify-between rounded-2xl border border-slate-200 p-4">
+                  <span className="text-sm font-semibold text-slate-600">Venta de animales</span>
+                  <span className="font-bold text-emerald-700">{money(resumen.totalVentasAnimales)}</span>
+                </div>
+                <div className="flex justify-between rounded-2xl border border-slate-200 p-4">
+                  <span className="text-sm font-semibold text-slate-600">Venta de leche</span>
+                  <span className="font-bold text-emerald-700">{money(resumen.totalVentasLeche)}</span>
+                </div>
+              </div>
+            </Panel>
+          </div>
         </div>
-      </Panel>
+      )}
 
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <StatCard
-          title="Mayor gasto"
-          value={resumenFiltrado.mayorGasto ? `$${Number(resumenFiltrado.mayorGasto.monto).toLocaleString()}` : 'N/A'}
-          icon={<ArrowDownCircle size={20} />}
-          tone="red"
-          helper={resumenFiltrado.mayorGasto ? obtenerNombreCategoriaMovimiento(resumenFiltrado.mayorGasto) : 'Sin gastos en el periodo'}
-        />
-        <StatCard
-          title="Categoría con más gasto"
-          value={resumenFiltrado.categoriaMayorGasto ? resumenFiltrado.categoriaMayorGasto[0] : 'N/A'}
-          icon={<FolderPlus size={20} />}
-          tone="slate"
-          helper={resumenFiltrado.categoriaMayorGasto ? `$${resumenFiltrado.categoriaMayorGasto[1].toLocaleString()}` : 'Sin gastos en el periodo'}
-        />
-        <StatCard
-          title="Resultado de la finca"
-          value={resumenFiltrado.balance >= 0 ? 'Positivo' : 'En pérdida'}
-          icon={<Wallet size={20} />}
-          tone={resumenFiltrado.balance >= 0 ? 'green' : 'red'}
-          helper={fincaSeleccionada ? fincaSeleccionada.nombre : 'Todas las fincas'}
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="mb-1 block text-sm font-semibold text-slate-700">Buscar movimiento</label>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input type="search" value={busquedaMovimiento} onChange={(e) => setBusquedaMovimiento(e.target.value)} className="w-full pl-10" placeholder="Categoría, descripción o finca" />
-        </div>
-      </div>
-
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Panel title="Gastos" count={gastosFiltrados.length}>
-          {loading ? (
-            <p className="text-sm text-slate-500">Cargando gastos...</p>
-          ) : gastos.length === 0 ? (
-            <EmptyState title="No hay gastos registrados" description="Registra gastos como alimentación, medicamentos, transporte o mano de obra." />
-          ) : gastosFiltrados.length === 0 ? (
-            <EmptyState title="No encontramos gastos" description="Prueba con otra búsqueda, finca o fecha." />
-          ) : (
-            <div className="space-y-3">{gastosFiltrados.map((gasto) => renderMovimiento(gasto, 'GASTO'))}</div>
-          )}
-        </Panel>
-
-        <Panel title="Ingresos" count={ingresosFiltrados.length}>
-          {loading ? (
-            <p className="text-sm text-slate-500">Cargando ingresos...</p>
-          ) : ingresos.length === 0 ? (
-            <EmptyState title="No hay ingresos registrados" description="Registra ingresos como venta de ganado, venta de leche u otros movimientos." />
-          ) : ingresosFiltrados.length === 0 ? (
-            <EmptyState title="No encontramos ingresos" description="Prueba con otra búsqueda, finca o fecha." />
-          ) : (
-            <div className="space-y-3">{ingresosFiltrados.map((ingreso) => renderMovimiento(ingreso, 'INGRESO'))}</div>
-          )}
-        </Panel>
-      </section>
-
-      <Modal isOpen={modalCategoriasListaAbierto} onClose={() => setModalCategoriasListaAbierto(false)} title="Categorías financieras">
-        <div className="mb-4 flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => abrirModalCategoria('GASTO')} icon={<Plus size={17} />}>Nueva categoría gasto</Button>
-          <Button onClick={() => abrirModalCategoria('INGRESO')} icon={<Plus size={17} />}>Nueva categoría ingreso</Button>
-        </div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {activeTab === 'movimientos' && (
+        <div className="space-y-6">
           <div>
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Gastos</h3>
+            <label className="mb-1 block text-sm font-semibold text-slate-700">Buscar movimiento</label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input type="search" value={busquedaMovimiento} onChange={(e) => setBusquedaMovimiento(e.target.value)} className="w-full pl-10" placeholder="Categoría, descripción, finca u origen" />
+            </div>
+          </div>
+
+          <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Panel title="Gastos" count={gastosFiltrados.length}>
+              {loading ? <p className="text-sm text-slate-500">Cargando gastos...</p> : gastosFiltrados.length === 0 ? <EmptyState title="No encontramos gastos" /> : <div className="space-y-3">{gastosFiltrados.map((gasto) => renderMovimiento(gasto, 'GASTO'))}</div>}
+            </Panel>
+            <Panel title="Ingresos" count={ingresosFiltrados.length}>
+              {loading ? <p className="text-sm text-slate-500">Cargando ingresos...</p> : ingresosFiltrados.length === 0 ? <EmptyState title="No encontramos ingresos" /> : <div className="space-y-3">{ingresosFiltrados.map((ingreso) => renderMovimiento(ingreso, 'INGRESO'))}</div>}
+            </Panel>
+          </section>
+        </div>
+      )}
+
+      {activeTab === 'comercial' && (
+        <div className="grid gap-6 xl:grid-cols-3">
+          <Panel title="Compras de animales" count={comprasFiltradas.length}>
+            <div className="space-y-3">
+              {comprasFiltradas.length === 0 ? <EmptyState title="No hay compras en el periodo" /> : comprasFiltradas.slice(0, 8).map((compra) => (
+                <div key={compra.id_compra_animal} className="rounded-2xl border border-slate-200 p-4">
+                  <p className="font-semibold text-slate-950">{compra.codigo_animal || compra.codigo || compra.descripcion || 'Animal comprado'}</p>
+                  <p className="mt-1 text-sm text-slate-500">{compra.nombre_proveedor || 'Sin proveedor'} · {compra.fecha_compra}</p>
+                  <p className="mt-2 font-bold text-red-600">{money(compra.precio)}</p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+          <Panel title="Ventas de animales" count={ventasAnimalesFiltradas.length}>
+            <div className="space-y-3">
+              {ventasAnimalesFiltradas.length === 0 ? <EmptyState title="No hay ventas de animales" /> : ventasAnimalesFiltradas.slice(0, 8).map((venta) => (
+                <div key={venta.id_venta_animal} className="rounded-2xl border border-slate-200 p-4">
+                  <p className="font-semibold text-slate-950">{venta.codigo || venta.nombre_animal || 'Animal vendido'}</p>
+                  <p className="mt-1 text-sm text-slate-500">{venta.nombre_cliente || 'Sin cliente'} · {venta.fecha_venta}</p>
+                  <p className="mt-2 font-bold text-emerald-700">{money(venta.precio)}</p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+          <Panel title="Ventas de leche" count={ventasLecheFiltradas.length}>
+            <div className="space-y-3">
+              {ventasLecheFiltradas.length === 0 ? <EmptyState title="No hay ventas de leche" /> : ventasLecheFiltradas.slice(0, 8).map((venta) => (
+                <div key={venta.id_venta_leche} className="rounded-2xl border border-slate-200 p-4">
+                  <p className="font-semibold text-slate-950">{Number(venta.litros || 0).toLocaleString()} litros</p>
+                  <p className="mt-1 text-sm text-slate-500">{venta.nombre_cliente || 'Sin cliente'} · {venta.fecha_venta}</p>
+                  <p className="mt-2 font-bold text-emerald-700">{money(venta.total)}</p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </div>
+      )}
+
+      {activeTab === 'cuentas' && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Panel title="Cuentas por pagar" count={cuentasPagarPendientes.length} helper="Dinero que la finca debe pagar.">
+            <div className="space-y-3">
+              {cuentasPagarPendientes.length === 0 ? <EmptyState title="No hay cuentas por pagar pendientes" /> : cuentasPagarPendientes.map((cuenta) => (
+                <div key={cuenta.id_cuenta_pagar} className="rounded-2xl border border-slate-200 p-4">
+                  <p className="font-semibold text-slate-950">{cuenta.descripcion}</p>
+                  <p className="mt-1 text-sm text-slate-500">Vence: {cuenta.fecha_vencimiento}</p>
+                  <p className="mt-2 font-bold text-red-600">{money(cuenta.monto)}</p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+          <Panel title="Cuentas por cobrar" count={cuentasCobrarPendientes.length} helper="Dinero pendiente por entrar.">
+            <div className="space-y-3">
+              {cuentasCobrarPendientes.length === 0 ? <EmptyState title="No hay cuentas por cobrar pendientes" /> : cuentasCobrarPendientes.map((cuenta) => (
+                <div key={cuenta.id_cuenta_cobrar} className="rounded-2xl border border-slate-200 p-4">
+                  <p className="font-semibold text-slate-950">{cuenta.descripcion}</p>
+                  <p className="mt-1 text-sm text-slate-500">Vence: {cuenta.fecha_vencimiento}</p>
+                  <p className="mt-2 font-bold text-emerald-700">{money(cuenta.monto)}</p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+          <div className="lg:col-span-2">
+            <Link to="/cuentas" className="inline-flex rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">
+              Administrar cuentas
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'categorias' && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Panel title="Categorías de gasto" count={categoriasGasto.length}>
+            <div className="mb-4">
+              <Button onClick={() => abrirModalCategoria('GASTO')} icon={<Plus size={17} />}>Nueva categoría gasto</Button>
+            </div>
             <div className="space-y-2">
               {categoriasGasto.length === 0 ? <EmptyState title="No hay categorías de gasto" /> : categoriasGasto.map((categoria) => renderCategoria(categoria, 'red'))}
             </div>
-          </div>
-          <div>
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Ingresos</h3>
+          </Panel>
+          <Panel title="Categorías de ingreso" count={categoriasIngreso.length}>
+            <div className="mb-4">
+              <Button onClick={() => abrirModalCategoria('INGRESO')} icon={<Plus size={17} />}>Nueva categoría ingreso</Button>
+            </div>
             <div className="space-y-2">
               {categoriasIngreso.length === 0 ? <EmptyState title="No hay categorías de ingreso" /> : categoriasIngreso.map((categoria) => renderCategoria(categoria, 'green'))}
             </div>
-          </div>
+          </Panel>
         </div>
-      </Modal>
+      )}
+
+      {activeTab === 'reportes' && (
+        <div className="grid gap-6 xl:grid-cols-2">
+          <Panel title="Reporte del periodo" helper="Resumen listo para tomar decisiones rápidas.">
+            <div className="space-y-3">
+              <p className="flex justify-between rounded-2xl border border-slate-200 p-4"><span>Resultado financiero</span><strong className="whitespace-nowrap tabular-nums">{money(resumen.balance)}</strong></p>
+              <p className="flex justify-between rounded-2xl border border-slate-200 p-4"><span>Ingresos ganaderos</span><strong className="whitespace-nowrap tabular-nums">{money(resumen.totalVentasAnimales + resumen.totalVentasLeche)}</strong></p>
+              <p className="flex justify-between rounded-2xl border border-slate-200 p-4"><span>Compra de animales</span><strong className="whitespace-nowrap tabular-nums">{money(resumen.totalComprasAnimales)}</strong></p>
+              <p className="flex justify-between rounded-2xl border border-slate-200 p-4"><span>Saldo pendiente neto</span><strong className="whitespace-nowrap tabular-nums">{money(resumen.cuentasPorCobrar - resumen.cuentasPorPagar)}</strong></p>
+            </div>
+          </Panel>
+          <Panel title="Lectura rápida">
+            <div className="space-y-3 text-sm leading-6 text-slate-700">
+              <p className="rounded-2xl border border-slate-200 p-4">
+                {resumen.balance >= 0 ? 'La finca está con balance positivo en el periodo filtrado.' : 'La finca está con balance negativo en el periodo filtrado.'}
+              </p>
+              <p className="rounded-2xl border border-slate-200 p-4">
+                El mayor gasto es {resumen.categoriaMayorGasto?.[0] || 'no registrado'} y el mayor ingreso es {resumen.categoriaMayorIngreso?.[0] || 'no registrado'}.
+              </p>
+              <p className="rounded-2xl border border-slate-200 p-4">
+                Tienes {money(resumen.cuentasPorCobrar)} por cobrar y {money(resumen.cuentasPorPagar)} por pagar.
+              </p>
+            </div>
+          </Panel>
+        </div>
+      )}
 
       <Modal isOpen={modalCategoriaAbierto} onClose={cerrarModalCategoria} title={editandoCategoriaId ? 'Editar categoría' : 'Nueva categoría'}>
         <form onSubmit={guardarCategoria} className="space-y-4">
@@ -543,17 +725,8 @@ function Finanzas() {
 
       <Modal isOpen={modalMovimientoAbierto} onClose={cerrarModalMovimiento} title={tipoMovimiento === 'GASTO' ? 'Registrar gasto' : 'Registrar ingreso'}>
         <form onSubmit={guardarMovimiento} className="space-y-4">
-          <div className={`rounded-2xl border p-4 text-sm ${tipoMovimiento === 'GASTO' ? 'border-red-200 bg-red-50 text-red-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
-            Estás registrando un <strong>{tipoMovimiento === 'GASTO' ? 'gasto' : 'ingreso'}</strong>.
-          </div>
-
-          {categoriasMovimiento.length === 0 && (
-            <Alert
-              type="warning"
-              message={`Primero debes crear una categoría de ${tipoMovimiento === 'GASTO' ? 'gasto' : 'ingreso'} para registrar este movimiento.`}
-            />
-          )}
-
+          <Alert type="info" message={`Estás registrando un movimiento manual de tipo ${tipoMovimiento === 'GASTO' ? 'gasto' : 'ingreso'}.`} />
+          {categoriasMovimiento.length === 0 && <Alert type="warning" message={`Primero debes crear una categoría de ${tipoMovimiento === 'GASTO' ? 'gasto' : 'ingreso'}.`} />}
           <div>
             <label className="block text-sm font-semibold text-slate-700">Finca</label>
             <select value={idFinca} onChange={(e) => setIdFinca(e.target.value)} className="mt-1 w-full">
@@ -617,3 +790,13 @@ function Finanzas() {
 }
 
 export default Finanzas
+
+
+
+
+
+
+
+
+
+

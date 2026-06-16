@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Beef, CheckCircle2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -49,12 +49,11 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#ead7bd] text-emerald-950">
+    <div className="min-h-screen overflow-hidden bg-white text-slate-950">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.12fr_0.88fr]">
         <section className="relative hidden overflow-hidden bg-emerald-950 px-12 py-10 text-white lg:flex lg:flex-col lg:justify-between">
           <img src={heroImage} alt="" className="absolute inset-0 h-full w-full scale-105 object-cover opacity-85" />
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/92 via-emerald-950/58 to-slate-950/82" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(52,211,153,0.32),transparent_34%),radial-gradient(circle_at_80%_70%,rgba(234,215,189,0.2),transparent_30%)]" />
+          <div className="absolute inset-0 bg-slate-950/65" />
 
           <div className="relative">
             <AuthLogo />
@@ -90,24 +89,23 @@ function Login() {
 
         <section className="relative flex items-center justify-center px-5 py-10 sm:px-8">
           <img src={heroImage} alt="" className="absolute inset-0 h-full w-full object-cover opacity-18 lg:hidden" />
-          <div className="absolute inset-0 bg-[#ead7bd]/88 lg:bg-[#ead7bd]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.22),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(101,67,33,0.18),transparent_30%)]" />
+          <div className="absolute inset-0 bg-white" />
 
           <div className="relative w-full max-w-md">
             <div className="mb-8 flex justify-center lg:hidden">
-              <div className="rounded-3xl bg-gradient-to-br from-emerald-950 to-emerald-800 p-4 shadow-xl">
+              <div className="rounded-3xl bg-emerald-950 p-4 shadow-xl">
                 <AuthLogo />
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-emerald-950/10 bg-[#fff8ec]/95 p-7 shadow-xl shadow-emerald-950/20 md:p-8">
+            <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-xl shadow-slate-200/80 md:p-8">
               <div className="mb-8">
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">
                   Bienvenido
                 </p>
-                <h2 className="mt-2 text-3xl font-bold text-emerald-950">Iniciar sesión</h2>
+                <h2 className="mt-2 text-3xl font-bold text-slate-950">Iniciar sesión</h2>
 
-                <p className="mt-2 text-sm leading-6 text-emerald-950/70">
+                <p className="mt-2 text-sm leading-6 text-slate-600">
                   Ingresa para administrar tus fincas, animales, vacunas, pesos y movimientos.
                 </p>
               </div>
@@ -120,7 +118,7 @@ function Login() {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-semibold text-emerald-950">
+                  <label className="block text-sm font-semibold text-slate-800">
                     Correo electrónico
                   </label>
 
@@ -134,7 +132,7 @@ function Login() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-emerald-950">
+                  <label className="block text-sm font-semibold text-slate-800">
                     Contraseña
                   </label>
 
@@ -150,13 +148,13 @@ function Login() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-800 px-4 py-3.5 font-semibold text-white shadow-lg shadow-emerald-900/25 transition hover:-translate-y-0.5 hover:from-emerald-400 hover:to-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-2xl bg-emerald-700 px-4 py-3.5 font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? 'Ingresando...' : 'Ingresar a GanadoApp'}
                 </button>
               </form>
 
-              <p className="mt-6 text-center text-sm text-emerald-950/70">
+              <p className="mt-6 text-center text-sm text-slate-600">
                 ¿No tienes cuenta?{' '}
                 <Link to="/register" className="font-semibold text-emerald-700 hover:text-emerald-600">
                   Crear cuenta
@@ -171,3 +169,5 @@ function Login() {
 }
 
 export default Login
+
+

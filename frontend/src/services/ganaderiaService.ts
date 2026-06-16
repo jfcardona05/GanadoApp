@@ -1,4 +1,4 @@
-import api from './api'
+﻿import api from './api'
 
 export type Registro = Record<string, any>
 
@@ -65,3 +65,5 @@ export const ganaderiaService = {
 
   getAlertas: () => get('/ganaderia/alertas'),
 }
+
+

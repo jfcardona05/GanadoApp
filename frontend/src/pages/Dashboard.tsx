@@ -1,4 +1,4 @@
-import {
+﻿import {
   Activity,
   AlertTriangle,
   BadgeDollarSign,
@@ -241,23 +241,23 @@ function Dashboard() {
   return (
     <div>
       <PageHeader
-        title="Qué hacer hoy"
+        title="Panel de control"
         description="Una vista ejecutiva de la finca: tareas urgentes, salud del ganado, vacunas próximas y situación financiera."
       />
 
       {vacunasVencidas.length > 0 && <Alert type="error" message={`Atención: tienes ${vacunasVencidas.length} vacuna(s) vencida(s).`} />}
       {vacunasVencidas.length === 0 && vacunasProximas.length > 0 && <Alert type="warning" message={`Tienes ${vacunasProximas.length} vacuna(s) próximas en los siguientes 15 días.`} />}
 
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <StatCard title="Fincas" value={data.total_fincas} icon={<Building2 size={20} />} helper="Predios guardados" />
         <StatCard title="Animales" value={data.total_animales} icon={<Activity size={20} />} helper="Ganado registrado" />
-        <StatCard title="Ingresos" value={`$${Number(data.finanzas.total_ingresos).toLocaleString()}`} icon={<Wallet size={20} />} helper="Dinero que entró" />
-        <StatCard title="Balance" value={`$${Number(data.finanzas.balance).toLocaleString()}`} icon={<BadgeDollarSign size={20} />} tone={Number(data.finanzas.balance) >= 0 ? 'green' : 'red'} helper="Ingresos menos gastos" />
+        <StatCard title="Ingresos" value={`$${Number(data.finanzas.total_ingresos).toLocaleString('es-CO', { maximumFractionDigits: 0 })}`} icon={<Wallet size={20} />} helper="Dinero que entró" />
+        <StatCard title="Balance" value={`$${Number(data.finanzas.balance).toLocaleString('es-CO', { maximumFractionDigits: 0 })}`} icon={<BadgeDollarSign size={20} />} tone={Number(data.finanzas.balance) >= 0 ? 'green' : 'red'} helper="Ingresos menos gastos" />
         <StatCard title="Alertas" value={alertas.length} icon={<Bell size={20} />} tone={alertas.length > 0 ? 'yellow' : 'green'} helper="Por revisar" />
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_1fr]">
-        <Panel title="Tareas recomendadas" count={tareas.length} helper="Presiona una tarea para ir directo a resolverla.">
+        <Panel title="Tareas recomendadas" count={tareas.length} helper="Pendientes importantes para revisar la operación.">
           <div className="space-y-3">
             {tareas.map((tarea) => (
               <Link
@@ -382,3 +382,9 @@ function Dashboard() {
 }
 
 export default Dashboard
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-import api from './api'
+﻿import api from './api'
 
 interface RegisterData {
   nombre: string
@@ -21,3 +21,4 @@ export const loginUser = async (data: LoginData) => {
   const response = await api.post('/auth/login', data)
   return response.data
 }
+

@@ -1,4 +1,4 @@
-export function todayAtStart() {
+﻿export function todayAtStart() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return today
@@ -19,3 +19,5 @@ export function isWithinNextDays(date: string, days: number) {
 export function isPastDate(date: string) {
   return daysUntil(date) < 0
 }
+
+

@@ -53,15 +53,16 @@ const crearGasto = async (req, res) => {
 
     await pool.query(
       `INSERT INTO gastos 
-      (id_finca, id_categoria, categoria, descripcion, monto, fecha)
-      VALUES (?, ?, ?, ?, ?, ?)`,
+      (id_finca, id_categoria, categoria, descripcion, monto, fecha, origen)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         id_finca,
         id_categoria,
         categoria.nombre,
         descripcion || null,
         monto,
-        fecha
+        fecha,
+        'MANUAL'
       ]
     );
 
@@ -180,15 +181,16 @@ const crearIngreso = async (req, res) => {
 
     await pool.query(
       `INSERT INTO ingresos 
-      (id_finca, id_categoria, categoria, descripcion, monto, fecha)
-      VALUES (?, ?, ?, ?, ?, ?)`,
+      (id_finca, id_categoria, categoria, descripcion, monto, fecha, origen)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         id_finca,
         id_categoria,
         categoria.nombre,
         descripcion || null,
         monto,
-        fecha
+        fecha,
+        'MANUAL'
       ]
     );
 

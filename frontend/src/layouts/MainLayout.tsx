@@ -1,4 +1,4 @@
-import {
+﻿import {
   Beef,
   Bell,
   Building2,
@@ -25,7 +25,7 @@ const menuSections = [
   {
     title: 'Inicio',
     items: [
-      { label: 'Qué hacer hoy', shortLabel: 'Hoy', path: '/dashboard', icon: LayoutDashboard },
+      { label: 'Panel de control', shortLabel: 'Panel', path: '/dashboard', icon: LayoutDashboard },
       { label: 'Alertas importantes', shortLabel: 'Alertas', path: '/alertas', icon: Bell },
     ],
   },
@@ -180,7 +180,7 @@ function MainLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#ead7bd]">
+    <div className="min-h-screen bg-white">
       {sidebarAbierto && (
         <button
           type="button"
@@ -215,7 +215,7 @@ function MainLayout() {
       </aside>
 
       <div className="min-h-screen lg:pl-72">
-        <header className="sticky top-0 z-30 border-b border-emerald-950/10 bg-[#fff8ec]/95 shadow-sm shadow-emerald-950/10">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white shadow-sm">
           <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
               <button
@@ -231,7 +231,7 @@ function MainLayout() {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
                   GanadoApp
                 </p>
-                <p className="text-sm font-semibold text-emerald-950">
+                <p className="text-sm font-semibold text-slate-950">
                   {paginaActual?.shortLabel || 'Panel ganadero'}
                 </p>
               </div>
@@ -245,7 +245,6 @@ function MainLayout() {
         </header>
 
         <main className="relative mx-auto min-h-[calc(100vh-4rem)] max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.22),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(101,67,33,0.2),transparent_30%),linear-gradient(180deg,#ead7bd_0%,rgba(234,215,189,0)_100%)]" />
           <Outlet />
         </main>
       </div>
@@ -254,3 +253,5 @@ function MainLayout() {
 }
 
 export default MainLayout
+
+

@@ -1,4 +1,4 @@
-import { ClipboardCheck, Plus, Search } from 'lucide-react'
+﻿import { Plus, Search } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
@@ -59,7 +59,6 @@ function ModuleSection({
   load,
   create,
   searchKeys = [],
-  simpleHint,
 }: ModuleSectionProps) {
   const [items, setItems] = useState<Record<string, any>[]>([])
   const [form, setForm] = useState(initialForm(fields))
@@ -126,20 +125,6 @@ function ModuleSection({
 
   return (
     <Panel title={title} count={filtrados.length} helper={description}>
-      <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
-        <div className="flex gap-3">
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-green-700 shadow-sm">
-            <ClipboardCheck size={18} />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-green-900">Para empezar</p>
-            <p className="mt-1 text-sm leading-6 text-green-800">
-              {simpleHint || `Presiona "${buttonLabel}", llena los datos que conozcas y guarda. Si no sabes un dato, lo puedes dejar vacío.`}
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-sm font-semibold text-slate-700">Registros guardados</p>
@@ -298,3 +283,6 @@ function ModuleSection({
 }
 
 export default ModuleSection
+
+
+

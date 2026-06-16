@@ -1,4 +1,4 @@
-import api from './api'
+﻿import api from './api'
 
 export interface RegistroPeso {
   id_peso: number
@@ -32,3 +32,4 @@ export const deletePeso = async (id: number) => {
   const response = await api.delete(`/pesos/${id}`)
   return response.data
 }
+
